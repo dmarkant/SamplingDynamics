@@ -1,0 +1,2 @@
+load("/Users/doug/code/SamplingDynamics/gambles.Rdata")
+dir
