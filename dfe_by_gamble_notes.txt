@@ -20,7 +20,6 @@ L_p1, L_p2, L_p3: 	outcome probabilities for L option
 L_ev: 			EV(L)
 L_ev_var: 		Var(L)
 
-
 H_x1, H_x2, H_x3: 	outcomes for H option
 H_p1, H_p2, H_p3:	outcome probabilities for H option
 H_ev:			EV(H)
@@ -31,8 +30,8 @@ H_ev_var:		Var(H)
 
 Proportion choosing the H option
 prop_H_all		all participants
-prop_H_all_old	all participants in ‘old’ group
-prop_H_all_yng	all participants in ‘young’ group
+prop_H_all_old		all participants in ‘old’ group
+prop_H_all_yng		all participants in ‘young’ group
 prop_H_g1		group 1 (high switch rate)
 prop_H_g1_old		group 1 and ‘old’
 prop_H_g1_yng		group 1 and ‘youg’
