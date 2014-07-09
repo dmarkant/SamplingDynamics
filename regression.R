@@ -3,6 +3,27 @@ setwd("~/code/SamplingDynamics/")
 library(lme4)
 library(plyr)
 
+library(nnet)
+
+# Evaluating consistency of switch frequency and sample size
+data = as.data.frame(read.csv("dfe_by_game.csv"))
+data$group = factor(data$group)
+data$domain = factor(data$domain)
+
+m = lmer(samplesize ~ 1 + group + domain + session + (1|partid), data=data)
+m1 = lmer(samplesize ~ 1 + group + domain + session + (1|partid) + (1|gamble_lab), data=data)
+
+
+m =  lmer(switchcount ~ 1 + group + domain + session + (1|partid), data=data)
+m1 = lmer(switchcount ~ 1 + group + domain + session + samplesize + (1|partid), data=data)
+m2 = lmer(switchcount ~ 1 + group + domain + session + (samplesize|partid), data=data)
+
+m3.1 = lmer(switchcount ~ 1 + group + domain + session + (1|gamble_lab), data=data)
+m3 = lmer(switchcount ~ 1 + group + domain + session + (samplesize|partid) + (1|gamble_lab), data=data)
+
+
+
+# Predicting switch and stop trials
 data = as.data.frame(read.csv('reg_data.csv'))
 data$domain = factor(data$domain)
 data$gamble_lab = factor(data$gamble_lab)
@@ -53,17 +74,26 @@ plot(sdata$sample_out, fitted(m2), ylim=c(0, 1))
 lines(r$sample_out, r$prop, col='blue')
 
 # deviation from sample mean
-r = ddply(sdata, c("deviation"), function(df) mean(df$switch_or_stop))
-names(r) = c("deviation", "prop")
+plot(sdata$deviation, sdata$switch_or_stop)
 
 m3 = glm(switch_or_stop ~ 1 + deviation, data=sdata, family=binomial)
 plot(sdata$deviation, fitted(m2), ylim=c(0, .3))
 lines(r$deviation, r$prop, col='blue')
 
 # absolute deviation from sample mean
+plot(abs(sdata$deviation), sdata$switch_or_stop)
 
+
+# streak deviation
+plot(sdata$str_deviation, sdata$switch_or_stop)
+
+# absolute streak deviation
+plot(abs(sdata$str_deviation), sdata$switch_or_stop)
 
 # JUST SWITCH
+
+# baseline
+m0 = glm(switched ~ 1, data=sdata, family=binomial)
 
 # streak length -- doesn't make much sense without including stop decisions as well
 
@@ -76,20 +106,30 @@ plot(sdata$sample_out, fitted(m2), ylim=c(0, .5))
 lines(r$sample_out, r$prop, col='blue')
 
 # deviation from sample mean
-r = ddply(sdata, c("deviation"), function(df) mean(as.numeric(df$switched)-1))
-names(r) = c("deviation", "prop")
-plot(r$deviation, r$prop)
-
 m3 = glm(switched ~ 1 + deviation, data=sdata, family=binomial)
-plot(sdata$deviation, fitted(m2), ylim=c(0, .3))
-lines(r$deviation, r$prop, col='blue')
+plot(sdata$deviation, fitted(m2), ylim=c(0.15, .3))
+lines(sdata$deviation, as.numeric(sdata$switched)-1, col='blue')
 
 # absolute deviation from sample mean
+m4 = glm(switched ~ 1 + abs(deviation), data=sdata, family=binomial)
+plot(abs(sdata$deviation), fitted(m2), ylim=c(0, .3))
+lines(abs(r$deviation), r$prop, col='blue')
+
+# streak deviation
+plot(sdata$str_deviation, sdata$switched)
+
+# absolute streak deviation
+plot(abs(sdata$str_deviation), sdata$switched)
+m5 = glm(switched ~ 1 + abs(str_deviation), data=sdata, family=binomial)
 
 
+# MULTI-NOMIAL
+sdata$dec = as.numeric(sdata$switched)-1 + 2*(as.numeric(sdata$stopped))
 
+m = multinom(dec ~ 1 + sample_out, data=sdata)
 
-
+m = multinom(dec ~ 1 + abs(deviation), data=sdata)
+p = predict(m, type="probs")
 
 
 
@@ -104,6 +144,4 @@ m3 = glmer(switched ~ 1 + domain + sample_mean + deviation + (1|gamble_lab), dat
 
 
 
-
-sum# for each participant, run a series of logistic regressions
 
