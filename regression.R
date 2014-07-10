@@ -77,7 +77,7 @@ for (sid in unique(data$partid)) {
   
 }
 
-sdata = data[data$partid==136,]
+sdata = data[data$partid==127,]
 
 
 # LEAVE (SWITCH OR STOP) vs. STAY
@@ -108,8 +108,6 @@ plot(sdata$deviation, fitted(m3), ylim=c(0, 1))
 
 # absolute deviation from sample mean
 plot(sdata$abs_dev, sdata$switch_or_stop)
-
-
 
 m4 = glm(switch_or_stop ~ 1 + abs_dev, data=sdata, family=binomial)
 plot(sdata$abs_dev, fitted(m4))
@@ -149,8 +147,6 @@ plot(abs(dec_data$mn_diff), dec_data$dec)
 
 m2 = glm(dec ~ 1 + abs(mn_diff) + lpv, data=dec_data, family=binomial)
 plot(abs(dec_data$lpv), dec_data$dec)
-
-
 
 m3 = glm(dec ~ 1 + sample_out + sample_mean + abs_dev, data=dec_data, family=binomial)
 
