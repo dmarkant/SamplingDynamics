@@ -4,14 +4,11 @@ library(lme4)
 library(plyr)
 library(nnet)
 
-# Evaluating consistency of switch frequency and sample size
 data = as.data.frame(read.csv("dfe_by_game.csv"))
 data$group = factor(data$group)
 data$domain = factor(data$domain)
 data$switch_grp = factor(data$switch_grp)
 
-
-## All together
 # Sample size
 m = lmer(samplesize ~ group + domain + session + (1|partid), data=data)
 m1 = lmer(samplesize ~ group + domain + session + (1|partid) + (1|gamble_lab), data=data)
@@ -20,9 +17,7 @@ m1 = lmer(samplesize ~ group + domain + session + (1|partid) + (1|gamble_lab), d
 m =  lmer(switchcount ~ group + domain + session + (1|partid), data=data)
 m1 = lmer(switchcount ~ group + domain + session + samplesize + (1|partid), data=data)
 m2 = lmer(switchcount ~ group + domain + session + (samplesize|partid), data=data)
-
-m3.1 = lmer(switchcount ~ group + domain + session + (1|gamble_lab), data=data)
-m3 = lmer(switchcount ~ group + domain + session + (samplesize|partid) + (1|gamble_lab), data=data)
+#m3 = lmer(switchcount ~ group + domain + session + (samplesize|partid) + (1|gamble_lab), data=data)
 
 ## Compare sample size using switch group
 m1 = lmer(samplesize ~ group + domain + session + switch_grp + (1|partid), data=data)
@@ -49,7 +44,7 @@ data$switched = factor(data$switched)
 data$group = factor(data$group)
 data$sample_mean = as.numeric(as.character(data$sample_mean))
 data$deviation = as.numeric(as.character(data$deviation))
-
+data$sample_var = as.numeric(as.character(data$sample_var))
 data$switch_or_stop = data$switched==1 | data$stopped==1
 data$abs_dev = abs(data$deviation)
 data$dec = as.numeric(data$switched)-1 + 2*(as.numeric(data$stopped))
@@ -59,28 +54,103 @@ data$lpv = log(as.numeric(as.character(data$lpv)))
 freq_data = data[data$switch_grp == 'freq',]
 rare_data = data[data$switch_grp == 'rare',]
 
+subj_rare = unique(data[data$switch_grp=='rare',]$partid)
+subj_freq = unique(data[data$switch_grp=='freq',]$partid)
 
-dims = list(unique(data$partid), c("partid", "m1_aic"))
-df = data.frame(matrix(vector(), 12, 2, dimnames=dims), stringsAsFactors=F)
+cols = c("intercept", "streak_length", "sample_mean", "deviation", "abs_dev", "sample_var", "lpv", "abs_mn_diff")
+cols2 = c("intercept", "sample_mean", "deviation", "abs_dev", "sample_var", "lpv", "abs_mn_diff")
 
-domainloss = vector()
+rare_mat = matrix(nrow = 0, ncol=length(cols))
+rare_mat2 = matrix(nrow = 0, ncol=length(cols2))
 
-for (sid in unique(data$partid)) {
+for (sid in subj_rare) {
   sdata = data[data$partid==sid,]  
   
-  m1 = glmer(switched ~ 1 + domain + (1|gamble_lab), data=sdata, family=binomial)
-  print(summary(m1))
+  m = glm(switch_or_stop ~ 1 + streak_length + sample_mean + deviation + abs_dev + sample_var + lpv + abs(mn_diff), data=sdata, family=binomial)
+  rare_mat = rbind(rare_mat, summary(m)$coefficients[,3])
   
-  domainloss = c(domainloss, fixef(m1)['domainloss'])
+  dec_data = sdata[sdata$dec>0,]
+  dec_data$dec = dec_data$dec - 1
+  m = glm(dec ~ 1 + sample_mean + deviation + abs_dev + sample_var + lpv + abs(mn_diff), data=dec_data, family=binomial)
   
-  print(fixef(m1)['domainloss'])
-  
+  rare_mat2 = rbind(rare_mat2, summary(m)$coefficients[,3])
 }
 
-sdata = data[data$partid==127,]
 
+freq_mat = matrix(nrow = 0, ncol=length(cols))
+freq_mat2 = matrix(nrow = 0, ncol=length(cols2))
+
+for (sid in subj_freq) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  m = glm(switch_or_stop ~ 1 + streak_length + sample_mean + deviation + abs_dev + lpv + abs(mn_diff), data=sdata, family=binomial)
+  freq_mat = rbind(freq_mat, summary(m)$coefficients[,3])
+  
+  dec_data = sdata[sdata$dec>0,]
+  dec_data$dec = dec_data$dec - 1
+  m = glm(dec ~ 1 + sample_mean + deviation + abs_dev + lpv + abs(mn_diff), data=dec_data, family=binomial)
+  
+  freq_mat2 = rbind(freq_mat2, summary(m)$coefficients[,3])
+}
+
+
+# STAY v LEAVE
+rare_df = as.data.frame(rare_mat)
+#freq_df = as.data.frame(freq_mat)
+names(rare_df) = cols
+#names(freq_df) = cols
+
+par(mfrow=c(3,2))
+plot(density(rare_df$sample_mean), main='Sample mean', col='red', xlim=c(-10, 10))
+plot(density(rare_df$deviation), main='Deviation from sample mean', col='red', ylim=c(0, .5), xlim=c(-10, 10))
+plot(density(rare_df$abs_dev), main='Abs(deviation)', col='red', ylim=c(0, .4), xlim=c(-10, 10))
+plot(density(rare_df$sample_var), main='Sample var', col='red', ylim=c(0, .4), xlim=c(-10, 10))
+plot(density(rare_df$lpv), main='log pooled variance', col='red', ylim=c(0, .3), xlim=c(-10, 10))
+plot(density(rare_df$abs_mn_diff), main='Abs(mean difference)', col='red', ylim=c(0, .3), xlim=c(-10, 10))
+
+
+# SWITCH v STOP
+rare_df2 = as.data.frame(rare_mat2)
+freq_df2 = as.data.frame(freq_mat2)
+names(rare_df2) = cols2
+names(freq_df2) = cols2
+
+par(mfrow=c(3,2))
+
+plot(density(rare_df2$sample_mean), main='Sample mean', col='red', xlim=c(-10, 10))
+lines(density(freq_df2$sample_mean), main='Sample mean', col='blue')
+
+plot(density(rare_df2$deviation), main='Deviation from sample mean', col='red', ylim=c(0, .5), xlim=c(-10, 10))
+lines(density(freq_df2$deviation), main='Deviation from sample mean', col='blue')
+
+plot(density(rare_df2$abs_dev), main='Abs(deviation)', col='red', ylim=c(0, .4), xlim=c(-10, 10))
+lines(density(freq_df2$abs_dev), main='Abs(deviation)', col='blue')
+
+plot(density(rare_df2$sample_var), main='Sample var', col='red', ylim=c(0, .4), xlim=c(-10, 10))
+lines(density(freq_df2$sample_var), main='Sample var', col='blue')
+
+plot(density(rare_df2$lpv), main='log pooled variance', col='red', ylim=c(0, .3), xlim=c(-10, 10))
+lines(density(freq_df2$lpv), main='log pooled variance', col='blue')
+
+plot(density(rare_df2$abs_mn_diff), main='Abs(mean difference)', col='red', ylim=c(0, .3), xlim=c(-10, 10))
+lines(density(freq_df2$abs_mn_diff), main='Abs(mean difference)', col='blue')
+
+
+pairs(rare_df)
+pairs(freq_df)
+
+pairs(rare_df2)
+pairs(freq_df2)
+
+
+
+# SINGLE SUBJECT
+
+sdata = data[data$partid==111,]
 
 # LEAVE (SWITCH OR STOP) vs. STAY
+par(mfrow=c(3,2))
 
 # check out frequency of switch/stop as a function of streak length
 r = ddply(sdata, c("streak_length"), function(df) mean(df$switch_or_stop))
@@ -121,17 +191,11 @@ plot(abs(sdata$str_deviation), sdata$switch_or_stop)
 
 
 # mean difference
-m5 = glm(switch_or_stop ~ 1 + mn_diff, data=sdata, family=binomial)
-m5 = glm(switch_or_stop ~ 1 + abs(mn_diff), data=sdata, family=binomial)
-
-
 m1 = glm(switch_or_stop ~ 1 + streak_length, data=sdata, family=binomial)
-
 m2 = glm(switch_or_stop ~ 1 + streak_length + sample_out + deviation + abs_dev, data=sdata, family=binomial)
-
 m3 = glm(switch_or_stop ~ 1 + lpv + mn_diff, data=sdata, family=binomial)
 
-m = glm(switch_or_stop ~ 1 + streak_length + sample_out + deviation + abs_dev, data=sdata, family=binomial)
+m = glm(switch_or_stop ~ 1 + streak_length + sample_mean + deviation + abs_dev + sample_var + lpv + abs(mn_diff), data=sdata, family=binomial)
 
 
 # SWITCH vs. STOP (excluding STAY)
@@ -149,6 +213,10 @@ m2 = glm(dec ~ 1 + abs(mn_diff) + lpv, data=dec_data, family=binomial)
 plot(abs(dec_data$lpv), dec_data$dec)
 
 m3 = glm(dec ~ 1 + sample_out + sample_mean + abs_dev, data=dec_data, family=binomial)
+
+
+# all together
+m = glm(dec ~ 1 + sample_mean + deviation + abs_dev + lpv + abs(mn_diff), data=dec_data, family=binomial)
 
 
 
@@ -197,28 +265,59 @@ p = predict(m, type="probs")
 
 
 
+
+
+
+# SWITCH v STOP (rare group only)
+dec_data = data[data$dec>0,]
+dec_data$dec = dec_data$dec - 1
+
+rare_dec_data = dec_data[dec_data$switch_grp=='rare',]
+freq_dec_data = dec_data[dec_data$switch_grp=='freq',]
+
+m = glmer(dec ~ 
+            streak_length + 
+            #sample_out + 
+            #deviation + 
+            #abs_dev + 
+            #abs(mn_diff) +
+            #lpv +
+            (1|partid), 
+          data=rare_dec_data, family=binomial)
+
+
+
+m = glmer(dec ~ 
+            #sample_out + 
+            #deviation + 
+            #abs_dev + 
+            mn_diff +
+            #abs(mn_diff) +
+            #lpv +
+            (1|partid), 
+          data=freq_dec_data, family=binomial)
+
+
+
+#m = glmer(switch_or_stop ~ 1 + 
+#                           domain + 
+#                           (streak_length|partid), 
+#          data=rare_data, family=binomial, control=glmerControl(optimizer="bobyqa"))
+
+
+
+# STAY v LEAVE (both groups)
 m1 = glmer(switch_or_stop ~ 1 + (1|gamble_lab), data=sdata, family=binomial)
 m1 = glmer(switch_or_stop ~ 1 + streak_length + (1|gamble_lab), data=sdata, family=binomial)
 
-m1 = glmer(switched ~ 1 + domain + (1|gamble_lab), data=sdata, family=binomial)
-m2 = glmer(switched ~ 1 + domain + streak_length + (1|gamble_lab), data=sdata, family=binomial)
-m3 = glmer(switched ~ 1 + domain + sample_mean + deviation + (1|gamble_lab), data=sdata, family=binomial)
+
+m ~ glm(stopped ~ streak_length, data=rare_)
 
 
+m = glm(switch_or_stop ~ sample_out + deviation + abs(deviation) + mn_diff + abs(mn_diff) + lpv, data=rare_data, family=binomial)
 
-# SWITCH AND STOP
-m = glmer(switch_or_stop ~ 1 + domain + (streak_length|partid), data=rare_data, family=binomial, control=glmerControl(optimizer="bobyqa"))
+m = glm(switch_or_stop ~ sample_out + deviation + abs(deviation) + mn_diff + abs(mn_diff) + lpv, data=freq_data, family=binomial)
 
-
-
-# STOPPING DECISIONS ONLY (comparing rare and frequency switchers)
-
-ind_freq = as.numeric(data$switch_grp=='freq')
-ind_rare = as.numeric(data$switch_grp=='rare')
-
-
-
-m = glm(stopped ~ sample_out + deviation, data=rare_data, family=binomial)
 m2 = glm(stopped ~ sample_out + abs(deviation), data=rare_data, family=binomial)
 
 
