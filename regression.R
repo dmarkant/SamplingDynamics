@@ -4,24 +4,40 @@ library(lme4)
 library(plyr)
 library(nnet)
 
+library(languageR)
+
+library(lmerTest)
+
 data = as.data.frame(read.csv("dfe_by_game.csv"))
 data$group = factor(data$group)
 data$domain = factor(data$domain)
 data$switch_grp = factor(data$switch_grp)
+data$switchfreq = as.numeric(as.character(data$switchfreq))
+data$gamble_lab = factor(data$gamble_lab)
+data$partid = factor(data$partid)
+data$L_id = factor(data$L_id)
+data$H_id = factor(data$H_id)
 
 # Sample size
-m = lmer(samplesize ~ group + domain + session + (1|partid), data=data)
-m1 = lmer(samplesize ~ group + domain + session + (1|partid) + (1|gamble_lab), data=data)
+m1 = lmerTest::lmer(samplesize ~ 
+                      group + 
+                      session + 
+                      domain +
+                      pairtype +
+                      ev_diff +
+                      switch_grp +
+                      (1|partid), data=data)
+
+
 
 # Number of switches
-m =  lmer(switchcount ~ group + domain + session + (1|partid), data=data)
-m1 = lmer(switchcount ~ group + domain + session + samplesize + (1|partid), data=data)
-m2 = lmer(switchcount ~ group + domain + session + (samplesize|partid), data=data)
-#m3 = lmer(switchcount ~ group + domain + session + (samplesize|partid) + (1|gamble_lab), data=data)
-
-## Compare sample size using switch group
-m1 = lmer(samplesize ~ group + domain + session + switch_grp + (1|partid), data=data)
-m2 = lmer(samplesize ~ group + domain + session + (1|partid), data=data)
+m = lmerTest::lmer(switchcount ~
+                     group +
+                     session +
+                     domain +
+                     pairtype +
+                     ev_diff +
+                     (samplesize|partid), data=data)
 
 
 ## Run separately based on switch group
@@ -54,6 +70,13 @@ data$lpv = log(as.numeric(as.character(data$lpv)))
 freq_data = data[data$switch_grp == 'freq',]
 rare_data = data[data$switch_grp == 'rare',]
 
+
+
+rcorr.cens(rare_data$abs_dev, rare_data$switch_or_stop, outx=TRUE)
+
+
+
+
 subj_rare = unique(data[data$switch_grp=='rare',]$partid)
 subj_freq = unique(data[data$switch_grp=='freq',]$partid)
 
@@ -62,6 +85,8 @@ cols2 = c("intercept", "sample_mean", "deviation", "abs_dev", "sample_var", "lpv
 
 rare_mat = matrix(nrow = 0, ncol=length(cols))
 rare_mat2 = matrix(nrow = 0, ncol=length(cols2))
+
+m = glm(switch_or_stop ~ 1 + streak_length + sample_mean + deviation + abs_dev + sample_var + lpv + abs(mn_diff), data=sdata, family=binomial)
 
 for (sid in subj_rare) {
   sdata = data[data$partid==sid,]  
