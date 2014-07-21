@@ -10,6 +10,7 @@ library(lmerTest)
 data = as.data.frame(read.csv("dfe_by_game.csv"))
 data$group = factor(data$group)
 data$domain = factor(data$domain)
+data$session = as.numeric(as.character(data$session))
 data$switch_grp = factor(data$switch_grp)
 data$switchfreq = as.numeric(as.character(data$switchfreq))
 data$gamble_lab = factor(data$gamble_lab)
@@ -18,7 +19,7 @@ data$L_id = factor(data$L_id)
 data$H_id = factor(data$H_id)
 
 # Sample size
-m1 = lmerTest::lmer(samplesize ~ 
+m = lmerTest::lmer(samplesize ~ 
                       group + 
                       session + 
                       domain +
@@ -26,7 +27,16 @@ m1 = lmerTest::lmer(samplesize ~
                       ev_diff +
                       switch_grp +
                       (1|partid), data=data)
+summary(m)
 
+
+m = lmerTest::lmer(samplesize ~ 
+                     group*pairtype*domain + 
+                     session + 
+                     pairtype +
+                     ev_diff +
+                     (1|partid) + (1|gamble_lab), data=rare_data)
+summary(m)
 
 
 # Number of switches
@@ -37,7 +47,7 @@ m = lmerTest::lmer(switchcount ~
                      pairtype +
                      ev_diff +
                      (samplesize|partid), data=data)
-
+summary(m)
 
 ## Run separately based on switch group
 freq_data = data[data$switch_grp == 'freq',]
@@ -58,6 +68,24 @@ m1 = lmerTest::lmer(samplesize ~
                       pairtype +
                       ev_diff +
                       (1|partid), data=rare_data)
+
+
+m = lmerTest::lmer(switchcount ~
+                     group +
+                     session +
+                     domain +
+                     pairtype +
+                     ev_diff +
+                     (samplesize|partid), data=freq_data)
+
+
+m = lmerTest::lmer(switchcount ~
+                     group +
+                     session +
+                     domain +
+                     pairtype +
+                     ev_diff +
+                     (samplesize|partid), data=rare_data)
 
 
 # Predicting switch and stop trials
