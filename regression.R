@@ -1,7 +1,6 @@
 setwd("~/code/SamplingDynamics/")
 
 library(lme4)
-library(plyr)
 library(nnet)
 
 library(languageR)
@@ -44,12 +43,21 @@ m = lmerTest::lmer(switchcount ~
 freq_data = data[data$switch_grp == 'freq',]
 rare_data = data[data$switch_grp == 'rare',]
 
-# sample size
-m = lmer(samplesize ~ group + domain + session + (1|partid), data=rare_data)
-#m1 = lmer(samplesize ~ group + domain + session + (1|partid) + (1|gamble_lab), data=rare_data)
+m1 = lmerTest::lmer(samplesize ~ 
+                      group + 
+                      session + 
+                      domain +
+                      pairtype +
+                      ev_diff +
+                      (1|partid), data=freq_data)
 
-m = lmer(samplesize ~ group + domain + session + (1|partid), data=freq_data)
-#m1 = lmer(samplesize ~ group + domain + session + (1|partid) + (1|gamble_lab), data=freq_data)
+m1 = lmerTest::lmer(samplesize ~ 
+                      group + 
+                      session + 
+                      domain +
+                      pairtype +
+                      ev_diff +
+                      (1|partid), data=rare_data)
 
 
 # Predicting switch and stop trials

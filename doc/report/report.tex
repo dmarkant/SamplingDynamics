@@ -1,0 +1,170 @@
+\documentclass[english,doc]{apa}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{babel}
+\usepackage{setspace}
+\doublespacing
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
+\helvetica
+\author{.} % hack around some bugs in apa.cls
+\affiliation{.} % hack around some bugs in apa.cls
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+%% uncomment the following line to get this information
+% below the tile
+\note{Draft of \today}
+
+%% Some information on the journal. This will be
+%% printed on the headline of the first page
+%% Just uncomment wir a '%' if you don't want this
+% Journal name
+%\journal{The Test Journal}
+% volume, number, pages
+%\volume{X}
+% copyright notice
+%\ccoppy{\textcopyright\ The Author}
+% Serial number or other reference
+%\copnum{ISSN XXX-XXXX-XXXX}
+
+%% The usual ...
+%\acknowledgements{ \ldots}
+
+\makeatother
+
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\title{ Sequential Sampling Models for DFE}
+
+
+\rightheader{Report Modeling DFE}
+
+
+\author{.} 
+\affiliation{.}
+\maketitle
+{}
+%\clearpage
+
+
+
+
+
+
+\section{Basic model}
+\noindent The basic model is a sequential sampling model with two absorbing boundaries as shown in Figure \ref{f:1Wiener}. Each trajectory (the colored curves) represents the process in time for choosing  either option A or option B. It is continuous in time and does NOT represent the number of draws. The choice options are defined below. 
+
+%\begin{figure}[ht]
+%\begin{center}
+%\includegraphics[scale=0.4]{Model_1Wiener_DFE} \caption[ja]{Three trajectories for the basic underlying process. In this example the drift rate $\mu$ is positive, i.e., option $A$ is chosen over option $B$ more often}\label{f:1Wiener}
+%\end{center}
+%\end{figure}
+
+\noindent For all model versions we assume at least two processes, one for choosing option A and one for choosing option B. The structure of the gambles is mapped onto the drift rate  parameters $\mu_A$ and $\mu_B$. 
+
+\section{Structure of the gambles}
+\noindent I refer to Doug's output file.
+
+\noindent Each of the gambles have a different expected value and a different variance. 
+\begin{itemize}
+\item For the High (H) condition the expected value ranges from about 5.8 to 6.2 in the gain domain and from $-4.8$ to $-5.2$ in the loss domain.   
+
+\item For the Low (L) condition the expected value ranges from about 4.8 to 5.2 in the gain domain and from $-5.8$ to $-6.2$ in the loss domain. 
+
+\item The low variances range from about 10 to 30 and the high variance between 60 and 90.
+
+
+\item The difference in expected values between H and L ranges from .71 to 1.3.
+
+\item The values actually drawn vary between $-24$ and 24.
+\end{itemize}
+
+\noindent Except for the variances and the actual values the ranges are relatively small. 
+
+\noindent The question is what to map onto the drift rates. We want to weight the input (the parameters in the model) somehow.  There are too many different expected values (altogether 166) to even consider this as an option. To consider the difference in expected values is not reasonable since both gambles are not directly compared (at least not for the low switchers but we will use that to construct the model for decisions from descriptions). And they would be too many as well (83).  To use the actual values drawn could be one way to go. The  ids for the set of outcomes are between 0 and 45 for the L condition and between 2 and 45 between the H condition. That is we have max 46 different values (hopefully less). 
+ 
+\section{Specific models}
+\noindent Using the actual values drawn gives one possible input for the L condition to model:
+ 
+\begin{equation} 
+\mu_{L_{id_n}} = (w_{i} L_{x1n} + w_{j} L_{x2n} + w_{k} L_{x3n}) / \sqrt{Var(L_n)}  \label{EQ:mu1}
+\end{equation}
+
+\noindent The same holds for the H condition. Implicitly we assume a zero input for H when L is considered and zero input for L when H is considered. $w_i$, $w_j$, and $w_k$ are the parameters to be estimated from the data. With max 46 different values this results in 46 different $w$. 
+
+An alternative input is 
+
+ 
+\begin{equation} 
+\mu_{L_{id_n}} = (w_{i} L_{x1n} + w_{j} L_{x2n} + w_{k} L_{x3n})/ para(Var(L))  \label{EQ:mu2}
+\end{equation}
+
+\noindent The difference between both inputs  is that in Eq. \ref{EQ:mu1}  the standard deviation from the actual gambles are taken whereas in  \ref{EQ:mu2} low and high variances build two clusters and each is presented by an additional parameter. There are certainly more ways to set up the drift rate, e.g., by combining the values in the gambles in a reasonable way or by finding a different model input structure. We should discuss it.  
+
+
+ 
+Whatever the input to the drift is there are also various model architectures we have  discussed briefly (there are certainly more, but let's start with these). For simplicity the processes are shown in the following without the trajectories.  
+
+
+\subsection{Model 1}
+\noindent We assume one process for both options H and L with two subprocesses. In one subprocess H is considered and in the other subprocess L is considered. 
+
+%\begin{figure}[ht]
+%\begin{center}
+%\includegraphics[scale=0.4]{Schema_serial.pdf}
+%\end{center}
+%\end{figure}
+
+\noindent $t_1$ indicates when the DM switched from H, say, to L.  In the model $t_1$ is a RV (e.g., Uniform with small variance, i.e., almost fixed or with high variance which approaches a geometric distribution) and $t_1$ may be even related to the average number of draws. Low switchers switching happens once; f high switchers often. This is mapped one to one to the process: for low switchers we assume one switch and for frequent switchers the processes go back and forth. The sequence in which the processes are considered (first H and the L or vice versa) matters for the prediction (not for the choice probabilities but for the mean RT). We could also assume that the DM start randomly with H or L. Note that the starting process of the second process is not exactly as suggested in the figure. The trajectories are random (see \ref{f:1Wiener} and so are the next starting positions. 
+
+\subsection{Model 2}
+\noindent The second model assumes two separate processes, one for H and one for L. However, they are not directly interlinked. Note that the choice options are now accept/reject H and accept/reject H.  Also note, that the boundaries may be different in size. 
+
+%\begin{figure}[ht]
+%\begin{center}
+%\includegraphics[scale=0.4]{Schema_mixture.pdf}
+%\end{center}
+%\end{figure}
+Both processes are combined by assuming a mixture of processes. With probability $p$  H is processes and with probability $(1-p)$ L is processed. $p$ is a model parameter but may be directly linked to the number of draws taken from each option. I don't know yet how to model the switching behavior for this model. 
+\section{Remarks}
+\begin{itemize}
+\item Most importantly to get it started is to decide what features of the gambles should be  map onto the model parameters. 
+\item Risk attitude can be mapped onto a approach/avoidance parameter like in DFT (cf. forgetting). That is, the drift rate in Eqs. \ref{EQ:mu1} and \ref{EQ:mu1} are extended by $-\gamma x$, where $\gamma$ is a model parameter and $x$ is a state in the state space (roughly the evidence to accumulate). 
+\end{itemize}
+
+
+
+\section{Exploratory analysis}
+
+This exploratory analysis was conducted to answer the following questions:
+
+\begin{itemize}
+\item Are measures (sample size, number of switches) related to subject- and problem-level factors?
+\item Can trial-by-trial decisions (whether to continue sampling the same options, to switch to the other option, or to stop sampling altogether) be predicted by trial-level changes in the evidence accumulated?	
+\end{itemize}
+
+\subsection{Subject- and problem-level analysis}
+
+\subsubsection{Sample size}
+
+\subsubsection{Number of switches}
+
+\subsection{Trial-by-trial analysis}
+
+This analysis used logistic regression 
+
+\subsubsection{Stay vs. leave}
+
+
+\subsubsection{Switch vs. stop}
+
+
+
+\end{document}
