@@ -45,6 +45,31 @@ m = lmerTest::lmer(samplesize ~
                      (1|partid), data=freq_data)
 summary(m)
 
+
+m = lmerTest::lmer(samplesize ~ 
+                     group + 
+                     session + 
+                     domain +
+                     pairtype +
+                     ev_diff +
+                     total_var +
+                     (1|partid), data=rare_data)
+summary(m)
+
+
+
+m = glm(samplesize ~ 
+          group + 
+          session + 
+          domain +
+          pairtype +
+          ev_diff +
+          total_var, data=rare_data)
+summary(m)
+# isn't that strange... when not including the random effect, then there is a significant effect
+# of group (with young people taking MORE samples)
+
+
 m = lmerTest::lmer(samplesize ~ 
                      group*pairtype*domain + 
                      session + 
@@ -62,7 +87,7 @@ m = lmerTest::lmer(switchcount ~
                      domain +
                      pairtype +
                      ev_diff +
-                     total_var +
+                     #total_var +
                      (samplesize|partid), data=data)
 summary(m)
 
@@ -83,10 +108,11 @@ m = lmerTest::lmer(switchcount ~
                      domain +
                      pairtype +
                      ev_diff +
-                     total_var +
+                     #total_var +
                      (samplesize|partid), data=rare_data)
 
 
+# TRIAL LEVEL
 # Predicting switch and stop trials
 data = as.data.frame(read.csv('reg_data.csv'))
 data$domain = factor(data$domain)
@@ -104,16 +130,47 @@ data$lpv = log(as.numeric(as.character(data$lpv)))
 
 freq_data = data[data$switch_grp == 'freq',]
 rare_data = data[data$switch_grp == 'rare',]
-
-
-
-rcorr.cens(rare_data$abs_dev, rare_data$switch_or_stop, outx=TRUE)
-
-
-
-
 subj_rare = unique(data[data$switch_grp=='rare',]$partid)
 subj_freq = unique(data[data$switch_grp=='freq',]$partid)
+
+#rcorr.cens(rare_data$abs_dev, rare_data$switch_or_stop, outx=TRUE)
+
+
+## overall model
+
+### stay or leave
+m = glm(switch_or_stop ~ 1 + deviation, data=rare_data, family=binomial)
+m = glm(switch_or_stop ~ 1 + abs_dev, data=rare_data, family=binomial)
+m = glm(switch_or_stop ~ 1 + mn_diff, data=rare_data, family=binomial)
+m = glm(switch_or_stop ~ 1 + lpv, data=rare_data, family=binomial)
+
+m = glm(switch_or_stop ~ 1 + 
+                         deviation +
+                         abs_dev + 
+                         mn_diff +
+                         lpv #+
+                         #sample_var
+                         , data=rare_data, family=binomial)
+
+### stop or switch
+
+m = glm(stopped ~ 1 + 
+                  deviation +
+                  abs_dev +
+                  mn_diff +
+                  lpv, data=rare_data[rare_data$dec > 0,], family=binomial)
+
+
+m = glm(stopped ~ 1 + 
+          deviation +
+          #abs_dev +
+          mn_diff +
+          lpv, data=freq_data[freq_data$dec > 0,], family=binomial)
+
+
+
+
+
 
 cols = c("intercept", "streak_length", "sample_mean", "deviation", "abs_dev", "sample_var", "lpv", "abs_mn_diff")
 cols2 = c("intercept", "sample_mean", "deviation", "abs_dev", "sample_var", "lpv", "abs_mn_diff")

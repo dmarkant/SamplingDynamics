@@ -143,14 +143,12 @@ Both processes are combined by assuming a mixture of processes. With probability
 
 \section{Exploratory analysis}
 
-This analysis was conducted to answer the following questions:
+Additional analyses were conducted to answer the following questions:
 
 \begin{itemize}
-\item Are behavioral measures (sample size, number of switches) related to subject- and problem-level factors?
-\item Can trial-by-trial decisions (whether to continue sampling the same options, to switch to the other option, or to stop sampling altogether) be predicted by trial-level changes in the evidence accumulated?	
+\item Are behavioral measures like sample size and number of switches related to subject- and problem-level factors?
+\item Can trial-by-trial decisions (whether to continue sampling the same option, to switch to the other option, or to stop sampling altogether) be predicted by trial-level changes in the evidence accumulated?
 \end{itemize}
-
-
 
 
 \subsection{Subject- and problem-level analysis}
@@ -163,36 +161,68 @@ The following predictors were considered:
 \item Domain (gain/loss)
 \item Pairtype (HH-LL or HL-LH): all option pairs included one high-variance and one low-variance option. For HH-LL pairs, the H option had high variance (this was predicted to be a difficult problem); in HL-LH pairs, the H option had low variance (predicted to be an easy problem).
 \item EV-diff: difference in expected value between H and L option
+\item Total variance (combined between two options; although all pairs had a high and low variance option, there was still some variability in the total variance across different pairs)
 \end{itemize}
+
 
 \subsubsection{Number of switches}
 
-Ran mixed effects linear regression on the number of switches, with the variables above as fixed effects, and a random effect term for sample size by participant.
-\footnote{The random effect leads to a different coefficient for each participant describing the effect of samples on the number of switches. For frequent switchers this value is high (since number of switches is highly correlated with number of samples), while for people who switch rarely regardless of sample size it will be at zero.}
+Ran mixed effects linear regression on the number of switches, with the variables above as fixed effects, and a random effect term for sample size by participant. 
+This random effect leads to a different coefficient for each participant describing the effect of samples on the number of switches. 
+For frequent switchers this value is high (since number of switches is highly correlated with number of samples), while for people who switch the same number of times regardless of sample size it should be at zero.
 
-However, there were no significant effects of any of these variables on the number of switches.
-This is consistent with earlier analysis that indicated 1) a bimodal distribution of switching rates, and 2) stable switching rates within subjects.
-For following analyses, people are divided into two groups (FREQ and RARE switchers) using a median split on the average switching rate.
+There were no significant effects of any of the variables above on the number of switches.
+The result was consistent with earlier analyses that indicated 1) a bimodal distribution of switching rates, and 2) stable switching rates within subjects.
+For following analyses, people were divided into two groups based on their switching rate (FREQ and RARE switchers) using a median split on the average switching rate.
 
 
 \subsubsection{Sample size}
 
-The next question was whether the total sample size was related to the same set of predictors (now adding the switching group variable based on median split above).
+The next question was how the total sample size was related to the same set of predictors (now adding the switching group variable based on median split).
 There was a significant effect of the switch group (FREQ/RARE; $p<.001$), with frequent switchers taking fewer samples than rare switchers. 
 There was also an effect of session ($p<.001$), with the number of samples decreasing over time.
 Additional modeling indicated that this decrease in sample size was specific to rare switchers. 
 However, there were no other effects of group or problem on sample size.
 
+In sum, the results suggest that after accounting for variability between participants, the features of the problem did not have a significant impact on switching rate or overall sample size.
+
 
 \subsection{Trial-by-trial analysis}
 
-This analysis used logistic regression 
+Although the preceding analysis didn't reveal any significant relationships between features of the problem and sample size or overall switching rate, it may be that trial-by-trial changes in a participant's experience was related to when they made decisions to switch or stop.
+
+The following trial-by-trial variables were considered:
+
+\begin{itemize}
+\item Sample outcome
+\item Deviation of outcome from sample mean
+\item Absolute deviation from sample mean
+\item Difference in sample means (MN-DIFF)
+\item Pooled sample variance
+\end{itemize}
+
 
 \subsubsection{Stay vs. leave}
+
+The first set of models compared decisions to STAY (continue sampling the same option) or LEAVE (\emph{either} switch to a different option or stop sampling). 
+Since frequent switchers chose to LEAVE on nearly every trial, here the focus was on rare switchers' decisions to stop sampling the current option.
+
+There was a significant effect of absolute deviation ($z=10.1$, $p < .001$), with LEAVE decisions more likely following larger deviations from the sample mean.
+In addition, there was a significant effect of sample variance ($z=-10.2$, $p<.001$), with LEAVE decisions more likely as sample variance decreased.
 
 
 \subsubsection{Switch vs. stop}
 
+The second set of models focused on the subset of trials in which LEAVE decisions were made, comparing SWITCH and STOP decisions.
+Separate models were fit for RARE and FREQ groups of participants.
+
+For rare switchers, there was a significant effect of MN-DIFF ($z=3.4$, $p<.001$), with STOP decisions more likely as the difference between sample means increased.
+There was also a significant effect of pooled variance ($z=-11$, $p<.001$) with STOP decisions more likely with decreased variance.
+Finally, there was a small effect of deviation from the sample mean ($z=2.1$, $p=.03$).
+
+For frequent switchers, STOP decisions were more strongly predicted by the outcome of the last sample.
+There were significant effects of the deviation of the last outcome from the sample mean, $z=6.6$, $p<.001$ (a similar result is found when using absolute deviation).
+There was no effect of the difference in sample means, but there was a significant effect of pooled variance ($z=-19$, $p<.001$).
 
 
 \end{document}
