@@ -17,6 +17,11 @@ data$gamble_lab = factor(data$gamble_lab)
 data$partid = factor(data$partid)
 data$L_id = factor(data$L_id)
 data$H_id = factor(data$H_id)
+data$total_var = data$L_ev_var + data$H_ev_var
+
+## Run separately based on switch group
+freq_data = data[data$switch_grp == 'freq',]
+rare_data = data[data$switch_grp == 'rare',]
 
 # Sample size
 m = lmerTest::lmer(samplesize ~ 
@@ -26,15 +31,26 @@ m = lmerTest::lmer(samplesize ~
                       pairtype +
                       ev_diff +
                       switch_grp +
+                      total_var +
                       (1|partid), data=data)
 summary(m)
 
+m = lmerTest::lmer(samplesize ~ 
+                     group + 
+                     session + 
+                     domain +
+                     pairtype +
+                     ev_diff +
+                     total_var +
+                     (1|partid), data=freq_data)
+summary(m)
 
 m = lmerTest::lmer(samplesize ~ 
                      group*pairtype*domain + 
                      session + 
                      pairtype +
                      ev_diff +
+                     total_var +
                      (1|partid) + (1|gamble_lab), data=rare_data)
 summary(m)
 
@@ -46,28 +62,9 @@ m = lmerTest::lmer(switchcount ~
                      domain +
                      pairtype +
                      ev_diff +
+                     total_var +
                      (samplesize|partid), data=data)
 summary(m)
-
-## Run separately based on switch group
-freq_data = data[data$switch_grp == 'freq',]
-rare_data = data[data$switch_grp == 'rare',]
-
-m1 = lmerTest::lmer(samplesize ~ 
-                      group + 
-                      session + 
-                      domain +
-                      pairtype +
-                      ev_diff +
-                      (1|partid), data=freq_data)
-
-m1 = lmerTest::lmer(samplesize ~ 
-                      group + 
-                      session + 
-                      domain +
-                      pairtype +
-                      ev_diff +
-                      (1|partid), data=rare_data)
 
 
 m = lmerTest::lmer(switchcount ~
@@ -76,6 +73,7 @@ m = lmerTest::lmer(switchcount ~
                      domain +
                      pairtype +
                      ev_diff +
+                     total_var +
                      (samplesize|partid), data=freq_data)
 
 
@@ -85,6 +83,7 @@ m = lmerTest::lmer(switchcount ~
                      domain +
                      pairtype +
                      ev_diff +
+                     total_var +
                      (samplesize|partid), data=rare_data)
 
 
@@ -155,6 +154,133 @@ for (sid in subj_freq) {
   freq_mat2 = rbind(freq_mat2, summary(m)$coefficients[,3])
 }
 
+### Correlations
+
+# STAY vs LEAVE
+
+sample_out
+deviation
+mn_diff
+lpv
+abs_dev
+
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  c = cor.test(as.numeric(sdata$switch_or_stop), sdata$sample_out, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  c = cor.test(as.numeric(sdata$switch_or_stop), sdata$deviation, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  c = cor.test(as.numeric(sdata$switch_or_stop), sdata$mn_diff, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  c = cor.test(as.numeric(sdata$switch_or_stop), sdata$abs_dev, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid,]  
+  
+  c = cor.test(as.numeric(sdata$switch_or_stop), sdata$sample_var, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+# STOP vs SWITCH
+
+sample_out
+deviation
+mn_diff
+lpv
+abs_dev
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid & data$dec > 0,]  
+  
+  c = cor.test(as.numeric(sdata$dec), sdata$sample_out, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid & data$dec > 0,]  
+  
+  c = cor.test(as.numeric(sdata$dec), sdata$deviation, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid & data$dec > 0,]  
+  
+  c = cor.test(as.numeric(sdata$dec), sdata$abs_dev, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+r = c()
+p = c()
+for (sid in subj_rare) {
+  print(sid)
+  sdata = data[data$partid==sid & data$dec > 0,]  
+  
+  c = cor.test(as.numeric(sdata$dec), sdata$mn_diff, method="kendall")
+  p = rbind(p, c$p.value)
+  r = rbind(r, c$estimate)
+}
+
+
+d = rare_data[rare_data$dec > 0,]
+cor.test(d$sample_out, d$dec, method="kendall")
+cor.test(d$deviation, d$dec, method="kendall")
+cor.test(d$abs_dev, d$dec, method="kendall")
+cor.test(d$mn_diff, d$dec, method="kendall")
+
 
 # STAY v LEAVE
 rare_df = as.data.frame(rare_mat)
@@ -209,6 +335,9 @@ pairs(freq_df2)
 # SINGLE SUBJECT
 
 sdata = data[data$partid==111,]
+
+cor(as.numeric(sdata$switch_or_stop), sdata$sample_out, method="kendall")
+
 
 # LEAVE (SWITCH OR STOP) vs. STAY
 par(mfrow=c(3,2))

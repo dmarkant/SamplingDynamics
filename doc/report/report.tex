@@ -143,10 +143,10 @@ Both processes are combined by assuming a mixture of processes. With probability
 
 \section{Exploratory analysis}
 
-This exploratory analysis was conducted to answer the following questions:
+This analysis was conducted to answer the following questions:
 
 \begin{itemize}
-\item Are measures (sample size, number of switches) related to subject- and problem-level factors?
+\item Are behavioral measures (sample size, number of switches) related to subject- and problem-level factors?
 \item Can trial-by-trial decisions (whether to continue sampling the same options, to switch to the other option, or to stop sampling altogether) be predicted by trial-level changes in the evidence accumulated?	
 \end{itemize}
 
@@ -168,22 +168,21 @@ The following predictors were considered:
 \subsubsection{Number of switches}
 
 Ran mixed effects linear regression on the number of switches, with the variables above as fixed effects, and a random effect term for sample size by participant.
-\footnote{The random effect means that a different coefficient is estimated for each participant describing the effect of the number of samples on the number of switches.
-For frequent switchers this value will be high, while for people who switch only once regardless of sample size it will be at zero.}
+\footnote{The random effect leads to a different coefficient for each participant describing the effect of samples on the number of switches. For frequent switchers this value is high (since number of switches is highly correlated with number of samples), while for people who switch rarely regardless of sample size it will be at zero.}
+
 However, there were no significant effects of any of these variables on the number of switches.
-This is consistent with earlier analysis that indicated 1) a bimodal distribution of switching rates, and 2) consistent switching rate within subjects.
+This is consistent with earlier analysis that indicated 1) a bimodal distribution of switching rates, and 2) stable switching rates within subjects.
 For following analyses, people are divided into two groups (FREQ and RARE switchers) using a median split on the average switching rate.
 
 
 \subsubsection{Sample size}
 
 The next question was whether the total sample size was related to the same set of predictors (now adding the switching group variable based on median split above).
-There was a highly significant effect of the switch group (FREQ/RARE; $p<.001$), with frequent switchers taking fewer samples than rare switchers. 
-There was also an effect of session ($p<.001$), with the number of samples decreasing over time. 
+There was a significant effect of the switch group (FREQ/RARE; $p<.001$), with frequent switchers taking fewer samples than rare switchers. 
+There was also an effect of session ($p<.001$), with the number of samples decreasing over time.
+Additional modeling indicated that this decrease in sample size was specific to rare switchers. 
 However, there were no other effects of group or problem on sample size.
 
-
-\subsubsection{Number of switches}
 
 \subsection{Trial-by-trial analysis}
 
