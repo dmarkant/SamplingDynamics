@@ -146,8 +146,8 @@ Both processes are combined by assuming a mixture of processes. With probability
 Additional analyses were conducted to answer the following questions:
 
 \begin{itemize}
-\item Are behavioral measures like sample size and number of switches related to subject- and problem-level factors?
-\item Can trial-by-trial decisions (whether to continue sampling the same option, to switch to the other option, or to stop sampling altogether) be predicted by trial-level changes in the evidence accumulated?
+\item Are overall measures like sample size and number of switches related to subject- and problem-level factors?
+\item Can trial-by-trial decisions (whether to continue sampling the same option, to switch to the other option, or to stop sampling altogether) be predicted by changes in the evidence accumulated?
 \end{itemize}
 
 
@@ -172,7 +172,7 @@ This random effect leads to a different coefficient for each participant describ
 For frequent switchers this value is high (since number of switches is highly correlated with number of samples), while for people who switch the same number of times regardless of sample size it should be at zero.
 
 There were no significant effects of any of the variables above on the number of switches.
-The result was consistent with earlier analyses that indicated 1) a bimodal distribution of switching rates, and 2) stable switching rates within subjects.
+This result was consistent with earlier analyses that indicated 1) a bimodal distribution of switching rates, and 2) stable switching rates within subjects.
 For following analyses, people were divided into two groups based on their switching rate (FREQ and RARE switchers) using a median split on the average switching rate.
 
 
@@ -181,7 +181,7 @@ For following analyses, people were divided into two groups based on their switc
 The next question was how the total sample size was related to the same set of predictors (now adding the switching group variable based on median split).
 There was a significant effect of the switch group (FREQ/RARE; $p<.001$), with frequent switchers taking fewer samples than rare switchers. 
 There was also an effect of session ($p<.001$), with the number of samples decreasing over time.
-Additional modeling indicated that this decrease in sample size was specific to rare switchers. 
+Additional modeling indicated that this decrease in sample size was specific to the RARE group. 
 However, there were no other effects of group or problem on sample size.
 
 In sum, the results suggest that after accounting for variability between participants, the features of the problem did not have a significant impact on switching rate or overall sample size.
@@ -189,16 +189,18 @@ In sum, the results suggest that after accounting for variability between partic
 
 \subsection{Trial-by-trial analysis}
 
-Although the preceding analysis didn't reveal any significant relationships between features of the problem and sample size or overall switching rate, it may be that trial-by-trial changes in a participant's experience was related to when they made decisions to switch or stop.
+Although the preceding analysis didn't reveal any significant relationships between features of the problem and sample size or overall switching rate, it may be that trial-by-trial changes in a participant's experience were related to when they made decisions to switch or stop.
 
 The following trial-by-trial variables were considered:
 
 \begin{itemize}
+\item Sample mean
 \item Sample outcome
 \item Deviation of outcome from sample mean
 \item Absolute deviation from sample mean
+\item Deviation from streak mean
+\item Absolute deviation from streak mean
 \item Difference in sample means (MN-DIFF)
-\item Pooled sample variance
 \end{itemize}
 
 
