@@ -55,9 +55,6 @@
 
 
 
-
-
-
 \section{Basic model}
 \noindent The basic model is a sequential sampling model with two absorbing boundaries as shown in Figure \ref{f:1Wiener}. Each trajectory (the colored curves) represents the process in time for choosing  either option A or option B. It is continuous in time and does NOT represent the number of draws. The choice options are defined below. 
 
@@ -195,36 +192,85 @@ The following trial-by-trial variables were considered:
 
 \begin{itemize}
 \item Sample mean
-\item Sample outcome
 \item Deviation of outcome from sample mean
 \item Absolute deviation from sample mean
-\item Deviation from streak mean
-\item Absolute deviation from streak mean
-\item Difference in sample means (MN-DIFF)
+\item Sample variance
+\item Difference in sample means (current option - other option; note that when one option has not yet been sampled, its mean is assumed to be the average of all option EVs in the same domain)
 \end{itemize}
 
 
 \subsubsection{Stay vs. leave}
 
-The first set of models compared decisions to STAY (continue sampling the same option) or LEAVE (\emph{either} switch to a different option or stop sampling). 
-Since frequent switchers chose to LEAVE on nearly every trial, here the focus was on rare switchers' decisions to stop sampling the current option.
+I first compared decisions to STAY (continue sampling the same option) or LEAVE (\emph{either} switch to a different option or stop sampling).
+Since frequent switchers chose to LEAVE on nearly every trial, here the focus was on rare switchers only.
+The following table shows the result of a logistic regression model (STAY=0, LEAVE=1) with the variables above as predictors.
+\footnote{Note that separate analyses using rank correlations led to the same overall pattern of results as shown in the tables.}
 
-There was a significant effect of absolute deviation ($z=10.1$, $p < .001$), with LEAVE decisions more likely following larger deviations from the sample mean.
-In addition, there was a significant effect of sample variance ($z=-10.2$, $p<.001$), with LEAVE decisions more likely as sample variance decreased.
 
+\begin{center}
+\begin{table}[htdp]
+\caption{Stay vs. Leave (RARE only)}
+\begin{tabular}{l|c|c|}
+& $\beta$ & $p$ \\
+\hline
+Sample mean & -.007 & .002 \\
+Deviation of outcome from sample mean & .005 & .006 \\
+Absolute deviation from sample mean & .05 & <.001 \\
+Sample variance & -.01 & <.001 \\
+Difference between sample means & -.002 & .35
+\end{tabular}
+\label{default}
+\end{table}%
+\end{center}
+
+LEAVE decisions were more likely on trials with lower sample variance (but this is not surprising since in the RARE group these decisions occur at the end of longer streaks of sampling a single option).
+They were also more common when the sample mean was low, and when the most recent outcome deviated strongly from the sample mean.
+As compared to STAY decisions, the likelihood of LEAVE decisions did not vary based on the difference in sample means for RARE switchers.
 
 \subsubsection{Switch vs. stop}
 
-The second set of models focused on the subset of trials in which LEAVE decisions were made, comparing SWITCH and STOP decisions.
-Separate models were fit for RARE and FREQ groups of participants.
+The second comparison focused on the subset of trials in which LEAVE decisions were made, comparing SWITCH and STOP decisions.
+Analyses were performed separately on RARE and FREQ groups of participants.
 
-For rare switchers, there was a significant effect of MN-DIFF ($z=3.4$, $p<.001$), with STOP decisions more likely as the difference between sample means increased.
-There was also a significant effect of pooled variance ($z=-11$, $p<.001$) with STOP decisions more likely with decreased variance.
-Finally, there was a small effect of deviation from the sample mean ($z=2.1$, $p=.03$).
+\begin{center}
+\begin{table}[htdp]
+\caption{Switch vs. Stop (RARE switchers)}
+\begin{tabular}{l|c|c|}
+& $\beta$ & $p$ \\
+\hline
+Sample mean & .008 & .06 \\
+Deviation from sample mean & .007 & .07 \\
+Absolute deviation from sample mean & -.007 & .23 \\
+Sample variance & 0. & .76 \\
+Difference between sample means & 0. & .95
+\end{tabular}
+\label{default}
+\end{table}%
+\end{center}
 
-For frequent switchers, STOP decisions were more strongly predicted by the outcome of the last sample.
-There were significant effects of the deviation of the last outcome from the sample mean, $z=6.6$, $p<.001$ (a similar result is found when using absolute deviation).
-There was no effect of the difference in sample means, but there was a significant effect of pooled variance ($z=-19$, $p<.001$).
+\begin{center}
+\begin{table}[htdp]
+\caption{Switch vs. Stop (FREQ switchers)}
+\begin{tabular}{l|c|c|}
+& tau & p \\
+\hline
+Sample mean & .002 & .56 \\
+Deviation from sample mean & .02 & <.001 \\
+Absolute deviation from sample mean & .05 & <.001 \\
+Sample variance & -.008 & <.001 \\
+Difference between sample means & .02 & <.001
+\end{tabular}
+\label{default}
+\end{table}%
+\end{center}
+
+
+For RARE switchers, decisions to STOP sampling were more likely when the sample mean of the current option was high and when the most recent outcome was high relative to the sample mean (although both effects are marginal).
+As in the comparison of STAY/LEAVE decisions, the difference in sample means was not associated with an increased likelihood of a STOP decision.
+
+For FREQ switchers, STOP decisions were not related to the current sample mean, but were more likely following outcomes that deviated from the sample mean.
+STOP decisions were also more likely when the current option was higher than the other option.
+
 
 
 \end{document}

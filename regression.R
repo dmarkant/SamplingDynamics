@@ -1,10 +1,5 @@
 setwd("~/code/SamplingDynamics/")
-
 library(lme4)
-library(nnet)
-
-library(languageR)
-
 library(lmerTest)
 
 data = as.data.frame(read.csv("dfe_by_game.csv"))
@@ -139,7 +134,14 @@ subj_freq = unique(data[data$switch_grp=='freq',]$partid)
 ## overall model
 
 ### stay or leave
-m = glmer(switch_or_stop ~ 1 + deviation + (1|partid), data=rare_data, family=binomial)
+
+sdata = data[data$partid==3,]
+m = glm(switch_or_stop ~ 1 + streak_length + sample_mean, data=sdata, family=binomial)
+summary(m)
+
+m = glmer(switch_or_stop ~ (1|partid), data=rare_data, family=binomial)
+
+m = glmer(switch_or_stop ~ 1 + sample_mean + (streak_length|partid), data=rare_data, family=binomial)
 
 
 m = glm(switch_or_stop ~ 1 + deviation, data=rare_data, family=binomial)
@@ -152,9 +154,7 @@ m = glm(switch_or_stop ~ 1 +
                          deviation +
                          abs_dev + 
                          mn_diff +
-                         str_deviation +
-                         lpv +
-                         sample_var, data=rare_data, family=binomial)
+                         str_deviation, data=rare_data, family=binomial)
 
 
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$sample_mean, method="kendall")
@@ -235,19 +235,22 @@ mn_diff
 lpv
 abs_dev
 
+
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$sample_mean, method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$sample_out, method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$deviation, method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$abs_dev, method="kendall")
-cor.test(as.numeric(rare_data$switch_or_stop), rare_data$str_deviation, method="kendall")
+cor.test(as.numeric(rare_data$switch_or_stop), as.numeric(rare_data$str_deviation), method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), abs(as.numeric(rare_data$str_deviation)), method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$sample_var, method="kendall")
 cor.test(as.numeric(rare_data$switch_or_stop), rare_data$mn_diff, method="kendall")
 
 
+summary(glm((dec-1) ~ 1 + sample_mean, data=rare_data[rare_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + deviation, data=rare_data[rare_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + deviation, data=rare_data[rare_data$dec > 0,], family="binomial"))
 
-cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$sample_mean, method="kendall") 
-cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$sample_out, method="kendall") 
+cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$sample_mean, method="kendall")  
 cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$deviation, method="kendall") 
 cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$abs_dev, method="kendall")
 cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$mn_diff, method="kendall") 
@@ -255,7 +258,6 @@ cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec 
  
 
 cor.test(as.numeric(freq_data[freq_data$dec > 0,]$dec), freq_data[freq_data$dec > 0,]$sample_mean, method="kendall") 
-cor.test(as.numeric(freq_data[freq_data$dec > 0,]$dec), freq_data[freq_data$dec > 0,]$sample_out, method="kendall") 
 cor.test(as.numeric(freq_data[freq_data$dec > 0,]$dec), freq_data[freq_data$dec > 0,]$deviation, method="kendall") 
 cor.test(as.numeric(freq_data[freq_data$dec > 0,]$dec), freq_data[freq_data$dec > 0,]$abs_dev, method="kendall")
 cor.test(as.numeric(freq_data[freq_data$dec > 0,]$dec), freq_data[freq_data$dec > 0,]$mn_diff, method="kendall") 
