@@ -139,6 +139,16 @@ sdata = data[data$partid==3,]
 m = glm(switch_or_stop ~ 1 + streak_length + sample_mean, data=sdata, family=binomial)
 summary(m)
 
+
+summary(glm(switch_or_stop ~ 1 
+            + sample_mean
+            + deviation
+            + abs_dev
+            + sample_var
+            + mn_diff, data=rare_data, family="binomial"))
+
+
+
 m = glmer(switch_or_stop ~ (1|partid), data=rare_data, family=binomial)
 
 m = glmer(switch_or_stop ~ 1 + sample_mean + (streak_length|partid), data=rare_data, family=binomial)
@@ -248,7 +258,33 @@ cor.test(as.numeric(rare_data$switch_or_stop), rare_data$mn_diff, method="kendal
 
 summary(glm((dec-1) ~ 1 + sample_mean, data=rare_data[rare_data$dec > 0,], family="binomial"))
 summary(glm((dec-1) ~ 1 + deviation, data=rare_data[rare_data$dec > 0,], family="binomial"))
-summary(glm((dec-1) ~ 1 + deviation, data=rare_data[rare_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + abs_dev, data=rare_data[rare_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + sample_var, data=rare_data[rare_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + mn_diff, data=rare_data[rare_data$dec > 0,], family="binomial"))
+
+
+summary(glm((dec-1) ~ 1 + sample_mean, data=freq_data[freq_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + deviation, data=freq_data[freq_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + abs_dev, data=freq_data[freq_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + sample_var, data=freq_data[freq_data$dec > 0,], family="binomial"))
+summary(glm((dec-1) ~ 1 + mn_diff, data=freq_data[freq_data$dec > 0,], family="binomial"))
+
+
+summary(glm((dec-1) ~ 1 
+            + sample_mean
+            + deviation
+            + abs_dev
+            + sample_var
+            + mn_diff, data=rare_data[rare_data$dec > 0,], family="binomial"))
+
+
+summary(glm((dec-1) ~ 1 
+            + sample_mean
+            + deviation
+            + abs_dev
+            + sample_var
+            + mn_diff, data=freq_data[freq_data$dec > 0,], family="binomial"))
+
 
 cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$sample_mean, method="kendall")  
 cor.test(as.numeric(rare_data[rare_data$dec > 0,]$dec), rare_data[rare_data$dec > 0,]$deviation, method="kendall") 
