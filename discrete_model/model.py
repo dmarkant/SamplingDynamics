@@ -67,7 +67,8 @@ def loglik(value, args):
         pars[k] = value[i]
         if verbose: print '  %s=%s' % (k, pars[k])
 
-    if pars['theta'] <= 0 or pars['z_width']<.1 or pars['z_width']>1.:
+
+    if pars['theta'] < 1. or pars['z_width']<.05 or pars['z_width']>1. or pars['delta']<-1. or pars['delta']>1.:
         return np.inf
     else:
         result = run(pars)
@@ -89,25 +90,34 @@ def run(pars):
 
     verbose = pars.get('verbose', False)
 
-    theta = pars.get('theta', 5)     # boundaries
     delta = pars.get('delta', .1)    # drift parameter
+    theta = pars.get('theta', 5)     # boundaries
+    z_w   = pars.get('z_width', .25)
+    sigma = pars.get('sigma', 1.)
+
+    #beta  = pars.get('beta', 7)     # number of steps to the boundary
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
-
-    dv    = pars.get('dv', 1.)       # state space step size
-    sigma = pars.get('sigma', 1.)    # diffusion parameter
     dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
-    z_w   = pars.get('z_width', .25)
-
     alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
                                      # stay probability (must be > 1)
 
+    theta = np.round(theta)
+    dv = 1.
     tau = (dv**2)/(sigma**2)         # with default settings, equal to 1.
+
+
 
     # state space
     V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
     vi = range(len(V))
     m = len(V)
+
+    if verbose:
+        print 'theta:', theta
+        print 'V:', V
+        print 'm:', m
+        print 'delta:', delta
 
     if 'Z' in pars:
         Z = np.matrix(pars.get('Z'))
