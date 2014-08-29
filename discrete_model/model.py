@@ -78,35 +78,32 @@ def loglik(value, args):
 
 def run(pars):
 
-
     theta = pars.get('theta', 4)     # boundaries
-    dv    = pars.get('dv', .5)       # state space step size
+    #m     = pars.get('m', 21)        # number of states
+    dv    = pars.get('dv', .1)       # state space step size
     delta = pars.get('delta', .1)    # drift parameter
     sigma = pars.get('sigma', 1.)    # diffusion parameter
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
     dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
-    z_w   = pars.get('z_width', .25)
+    z_w   = pars.get('z_width', .1)
 
+    #dv = (2*theta)/float(m-1)
     tau = (dv**2)/(sigma**2)
 
     # state space
-    V = np.arange(-theta, theta+(dv/2.), dv)
+    V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
     vi = range(len(V))
     m = len(V)
 
     if 'Z' in pars:
         Z = np.matrix(pars.get('Z'))
     else:
-        # use unbiased starting position
+        # uniform interval for starting position
         zhw = np.floor((m - 2) * z_w)
         Z = np.zeros(m - 2)
         Z[(len(Z)/2-zhw):(len(Z)/2+zhw+1)] = 1.
         Z = np.matrix(Z/float(sum(Z)))
-
-        # use uniform starting position (exludes absorbing states)
-        #Z = np.matrix(np.ones(len(V) - 2)/(len(V)-2))
-
 
     # transition matrix
     tm_pqr = transition_matrix_PQR(V, dv, delta, sigma, tau, gamma)
