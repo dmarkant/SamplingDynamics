@@ -8,7 +8,7 @@ def pfix(p):
     return np.min([np.max([p, 1e-5]), 1-(1e-5)])
 
 
-def transition_probs(v, delta, sigma, tau, gamma):
+def transition_probs(v, delta, sigma, tau, gamma, alpha):
     """Get transition probabilities given parameters and current
     state.
 
@@ -17,16 +17,24 @@ def transition_probs(v, delta, sigma, tau, gamma):
     gamma -- state-dependent weight
     sigma -- diffusion parameter
     tau -- time step size
+    alpha -- relative prob of staying in current state (see Diederich
+             and Busemeyer, 2003, p. 311)
     """
     # state-dependent weight depends on current state and gamma
     sdw = gamma * v
-    p_down = .5 * (1 - ((delta - sdw)/sigma) * np.sqrt(tau))
-    p_up = .5 * (1 + ((delta - sdw)/sigma) * np.sqrt(tau))
-    p_stay = 1 - p_down - p_up
+    p_down = (1./(2 * alpha)) * (1 - ((delta - sdw)/sigma) * np.sqrt(tau))
+    p_up = (1./(2 * alpha)) * (1 + ((delta - sdw)/sigma) * np.sqrt(tau))
+    p_stay = 1 - (1./alpha)
+    try:
+        assert np.sum([p_down, p_stay, p_up])==1.
+    except AssertionError:
+        pass
+        #print p_down, p_stay, p_up
+        #print np.sum([p_down, p_stay, p_up])
     return [p_down, p_stay, p_up]
 
 
-def transition_matrix_PQR(V, dv, delta, sigma, tau, gamma):
+def transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha):
     m = len(V)
     tm_pqr = np.zeros((m, m), float)
     tm_pqr[0,0] = 1.
@@ -43,7 +51,7 @@ def transition_matrix_PQR(V, dv, delta, sigma, tau, gamma):
     for i in range(1, m - 1):
         row = np.where(V_pqr==V[i])[0][0]
         ind_pqr = np.array([np.where(V_pqr==V[i-1])[0][0], np.where(V_pqr==V[i])[0][0], np.where(V_pqr==V[i+1])[0][0]])
-        tm_pqr[row, ind_pqr] = transition_probs(i*dv, delta, sigma, tau, gamma)
+        tm_pqr[row, ind_pqr] = transition_probs(i*dv, delta, sigma, tau, gamma, alpha)
 
     return tm_pqr
 
@@ -59,18 +67,19 @@ def loglik(value, args):
         pars[k] = value[i]
         if verbose: print '  %s=%s' % (k, pars[k])
 
-    if pars['theta'] <= 0:
+    if pars['theta'] <= 0 or pars['z_width']<.1 or pars['z_width']>1.:
         return np.inf
     else:
         result = run(pars)
 
         data = pars['data']
+        pchoice = result['resp_prob_t']
         pstop = result['p_stop_t']
 
         llh = 0.
         for obs in data:
             choice, t = obs
-            llh += -np.log(pfix(pstop[t, choice]))
+            llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(pchoice[t, choice])))
 
         if verbose: print '  llh: %s' % llh
         return llh
@@ -78,18 +87,22 @@ def loglik(value, args):
 
 def run(pars):
 
-    theta = pars.get('theta', 4)     # boundaries
-    #m     = pars.get('m', 21)        # number of states
-    dv    = pars.get('dv', .1)       # state space step size
+    verbose = pars.get('verbose', False)
+
+    theta = pars.get('theta', 5)     # boundaries
     delta = pars.get('delta', .1)    # drift parameter
-    sigma = pars.get('sigma', 1.)    # diffusion parameter
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
-    dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
-    z_w   = pars.get('z_width', .1)
 
-    #dv = (2*theta)/float(m-1)
-    tau = (dv**2)/(sigma**2)
+    dv    = pars.get('dv', 1.)       # state space step size
+    sigma = pars.get('sigma', 1.)    # diffusion parameter
+    dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
+    z_w   = pars.get('z_width', .25)
+
+    alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
+                                     # stay probability (must be > 1)
+
+    tau = (dv**2)/(sigma**2)         # with default settings, equal to 1.
 
     # state space
     V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
@@ -99,24 +112,29 @@ def run(pars):
     if 'Z' in pars:
         Z = np.matrix(pars.get('Z'))
     else:
-        # uniform interval for starting position
+        # uniform interval for starting position, with width set by z_width
+        # parameter
+        z_w = z_w / 2.
         zhw = np.floor((m - 2) * z_w)
         Z = np.zeros(m - 2)
         Z[(len(Z)/2-zhw):(len(Z)/2+zhw+1)] = 1.
+        if verbose:
+            print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
+
         Z = np.matrix(Z/float(sum(Z)))
 
     # transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, delta, sigma, tau, gamma)
+    tm_pqr = transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha)
     Q = tm_pqr[2:,2:]
     I = np.eye(m - 2)
     R = np.matrix(tm_pqr[2:,:2])
     IQ = np.matrix(linalg.inv(I - Q))
 
-
     # time steps for evaluation
     T = np.arange(0., max_T, dt)
     N = map(int, np.floor(T/tau) + 1)
 
+    states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
 
     # predicted response probabilities
     # 1. overall response prob
@@ -139,8 +157,9 @@ def run(pars):
     p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
 
     return {'T': T,
+            'states_t': states_t,
             'resp_prob': np.array(resp_prob)[0],
-            #'resp_prob_t': resp_prob_t,
+            'resp_prob_t': resp_prob_t,
             #'resp_prob_cump': resp_prob_cump,
             'p_tsteps': p_tsteps,
             'p_stop_t': p_stop_cond,
