@@ -68,7 +68,11 @@ def loglik(value, args):
         if verbose: print '  %s=%s' % (k, pars[k])
 
 
-    if pars['theta'] < 1. or pars['z_width']<.05 or pars['z_width']>1. or pars['delta']<-1. or pars['delta']>1.:
+    if 'z_temp' in pars and pars['z_temp'] <= 0.:
+        return np.inf
+    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
+        return np.inf
+    elif pars['theta'] < 1. or pars['delta']<-1. or pars['delta']>1.:
         return np.inf
     else:
         result = run(pars)
@@ -80,10 +84,55 @@ def loglik(value, args):
         llh = 0.
         for obs in data:
             choice, t = obs
-            llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(pchoice[t, choice])))
+            llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(result['resp_prob'][choice])))
+            #llh += -1 * (np.log(pfix(pstop[t, choice]))) 
 
         if verbose: print '  llh: %s' % llh
         return llh
+
+
+def loglik_factor(value, args):
+
+    
+    verbose = args.get('verbose', False)
+    pars = deepcopy(args)
+    fitting = pars['fitting']
+    if verbose: print 'evaluating:'
+    for i, k in enumerate(fitting):
+        pars[k] = value[i]
+        if verbose: print '  %s=%s' % (k, pars[k])
+
+
+    if 'z_temp' in pars and pars['z_temp'] <= 0.:
+        return np.inf
+    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
+        return np.inf
+    elif pars['theta(0)'] < 1. or pars['theta(1)'] < 1.:
+        return np.inf
+    elif pars['delta']<-1. or pars['delta']>1.:
+        return np.inf
+    else:
+        
+        pars_0 = deepcopy(pars)
+        pars_0.update({'theta': pars_0['theta(0)']})
+        pars_1 = deepcopy(pars)
+        pars_1.update({'theta': pars_1['theta(1)']})
+        
+        result = [run(pars_0), run(pars_1)]
+
+        data = pars['data']
+
+        llh = 0.
+        for obs in data:
+            choice, t, grp = obs
+            llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])) + np.log(pfix(result[grp]['resp_prob'][choice])))
+            #llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice]))) 
+
+        if verbose: print '  llh: %s' % llh
+        return llh
+
+
+
 
 
 def run(pars):
@@ -91,24 +140,20 @@ def run(pars):
     verbose = pars.get('verbose', False)
 
     delta = pars.get('delta', .1)    # drift parameter
-    theta = pars.get('theta', 5)     # boundaries
-    z_w   = pars.get('z_width', .25)
-    sigma = pars.get('sigma', 1.)
+    theta = np.round(pars.get('theta', 5))     # boundaries
 
-    #beta  = pars.get('beta', 7)     # number of steps to the boundary
+    sigma = pars.get('sigma', 1.)
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
     dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
     alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
                                      # stay probability (must be > 1)
 
-    theta = np.round(theta)
-    dv = 1.
-    tau = (dv**2)/(sigma**2)         # with default settings, equal to 1.
+    dv    = pars.get('dv', 1.)
+    tau   = (dv**2)/(sigma**2)       # with default settings, equal to 1.
 
 
-
-    # state space
+    # create state space
     V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
     vi = range(len(V))
     m = len(V)
@@ -120,10 +165,13 @@ def run(pars):
         print 'delta:', delta
 
     if 'Z' in pars:
+        # starting vector was provided
         Z = np.matrix(pars.get('Z'))
-    else:
-        # uniform interval for starting position, with width set by z_width
-        # parameter
+
+    elif 'z_width' in pars:
+        # use interval of uniform probability for starting position, 
+        # with width set by z_width
+        z_w   = pars.get('z_width')
         z_w = z_w / 2.
         zhw = np.floor((m - 2) * z_w)
         Z = np.zeros(m - 2)
@@ -132,6 +180,18 @@ def run(pars):
             print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
 
         Z = np.matrix(Z/float(sum(Z)))
+    elif 'z_temp' in pars:
+        # use softmax-transformed distance from unbiased point
+        z_temp   = pars.get('z_temp')
+        Z = np.exp(-np.abs(V[1:-1]) * (1/float(z_temp)))
+        Z = np.matrix(Z / np.sum(Z))
+        if verbose:
+            print 'z_temp:', z_temp
+    else:
+        # otherwise start with unbiased starting position
+        Z = np.zeros(m - 2)
+        Z[len(Z)/2] = 1.
+        Z = np.matrix(Z)
 
     # transition matrix
     tm_pqr = transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha)
@@ -141,8 +201,10 @@ def run(pars):
     IQ = np.matrix(linalg.inv(I - Q))
 
     # time steps for evaluation
-    T = np.arange(0., max_T, dt)
-    N = map(int, np.floor(T/tau) + 1)
+    T = np.arange(1., max_T + 1, dt)
+    #print T
+    N = map(int, np.floor(T/tau))
+    #print N
 
     states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
 
