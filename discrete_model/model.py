@@ -85,7 +85,7 @@ def loglik(value, args):
         for obs in data:
             choice, t = obs
             llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(result['resp_prob'][choice])))
-            #llh += -1 * (np.log(pfix(pstop[t, choice]))) 
+            #llh += -1 * (np.log(pfix(pstop[t, choice])))
 
         if verbose: print '  llh: %s' % llh
         return llh
@@ -93,7 +93,7 @@ def loglik(value, args):
 
 def loglik_factor(value, args):
 
-    
+
     verbose = args.get('verbose', False)
     pars = deepcopy(args)
     fitting = pars['fitting']
@@ -112,12 +112,12 @@ def loglik_factor(value, args):
     elif pars['delta']<-1. or pars['delta']>1.:
         return np.inf
     else:
-        
+
         pars_0 = deepcopy(pars)
         pars_0.update({'theta': pars_0['theta(0)']})
         pars_1 = deepcopy(pars)
         pars_1.update({'theta': pars_1['theta(1)']})
-        
+
         result = [run(pars_0), run(pars_1)]
 
         data = pars['data']
@@ -126,7 +126,7 @@ def loglik_factor(value, args):
         for obs in data:
             choice, t, grp = obs
             llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])) + np.log(pfix(result[grp]['resp_prob'][choice])))
-            #llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice]))) 
+            #llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])))
 
         if verbose: print '  llh: %s' % llh
         return llh
@@ -142,7 +142,7 @@ def run(pars):
     delta = pars.get('delta', .1)    # drift parameter
     theta = np.round(pars.get('theta', 5))     # boundaries
 
-    sigma = pars.get('sigma', 1.)
+    sigma = pars.get('sigma', 1.)    # diffusion parameter
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
     dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
@@ -158,6 +158,7 @@ def run(pars):
     vi = range(len(V))
     m = len(V)
 
+
     if verbose:
         print 'theta:', theta
         print 'V:', V
@@ -169,7 +170,7 @@ def run(pars):
         Z = np.matrix(pars.get('Z'))
 
     elif 'z_width' in pars:
-        # use interval of uniform probability for starting position, 
+        # use interval of uniform probability for starting position,
         # with width set by z_width
         z_w   = pars.get('z_width')
         z_w = z_w / 2.
@@ -202,14 +203,11 @@ def run(pars):
 
     # time steps for evaluation
     T = np.arange(1., max_T + 1, dt)
-    #print T
     N = map(int, np.floor(T/tau))
-    #print N
 
     states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
 
-    # predicted response probabilities
-    # 1. overall response prob
+    # 1. overall response probabilities
     resp_prob = Z * (IQ * R)
 
     # 2. response probability over time
@@ -218,8 +216,7 @@ def run(pars):
     # 3. cumulative response probability over time
     #resp_prob_cump = resp_prob_t.cumsum(axis=0)
 
-    # predicted stopping points, conditional on choice
-    # 1. mean stopping point
+    # 1. predicted stopping points, conditional on choice
     p_tsteps = (Z * (IQ * IQ) * R) / resp_prob
 
     # 2. probability of stopping over time
@@ -232,7 +229,6 @@ def run(pars):
             'states_t': states_t,
             'resp_prob': np.array(resp_prob)[0],
             'resp_prob_t': resp_prob_t,
-            #'resp_prob_cump': resp_prob_cump,
             'p_tsteps': p_tsteps,
             'p_stop_t': p_stop_cond,
             'p_stop_t_cump': p_stop_cond_cump}
