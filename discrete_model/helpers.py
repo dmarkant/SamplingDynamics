@@ -1,3 +1,5 @@
+import matplotlib.pylab as plt
+
 def add_problem_labels(ax, label_h, ylim):
     ax.plot([21, 21], ylim, 'k--')
     ax.plot([42, 42], ylim, 'k--')
