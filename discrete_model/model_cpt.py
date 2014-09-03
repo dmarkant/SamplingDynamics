@@ -15,14 +15,18 @@ def value(option, pow_gain, pow_loss, w_loss, w_p):
         p_weighted = pweight(prob, w_p)
 
         if outcome >= 0:
-            v += p_weighted * (outcome**pow_gain)
+            v += p_weighted * (outcome ** pow_gain)
         else:
-            v += p_weighted * (-w_loss * ((-outcome)**pow_loss))
+            v += p_weighted * (-w_loss * ((-outcome) ** pow_loss))
     return v
 
 
+def pweight_prelec(p, pr_elevation, pr_gamma):
+    return np.exp(-pr_elevation * ((-np.log(p)) ** pr_gamma))
+
+
 def pweight(p, w):
-    return pfix((p**w) / ((p**w + (1-p)**w) ** (1/w)))
+    return pfix((p ** w) / ((p ** w + (1 - p) ** w) ** (1 / w)))
 
 
 def transition_probs(v, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, w_p):
