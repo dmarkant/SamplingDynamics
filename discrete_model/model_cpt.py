@@ -8,6 +8,50 @@ def pfix(p):
     return np.min([np.max([p, 1e-5]), 1-(1e-5)])
 
 
+def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
+    """
+    v -- current state
+    """
+    sdw = gamma * v
+
+    prelec_elevation = 1.
+    prelec_gamma = 1.
+
+    probs = []
+    utils = []
+    eu    = []
+    evar =  []
+
+    for opt_i, option in enumerate(options):
+
+        probs.append([pweight_prelec(prob, prelec_elevation, prelec_gamma) for (outcome, prob) in option])
+        utils.append([util(outcome, pow_gain, pow_loss, w_loss) for (outcome, prob) in option])
+
+        eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
+
+        # variance of this option
+        evar.append(np.sum([probs[opt_i][i] * utils[opt_i][i] ** 2 for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
+
+
+    outs =  np.outer(utils[0] - eu[0], utils[1] - eu[1])
+    ps   = np.outer(probs[0], probs[1])
+    cov = np.sum(np.multiply(outs, ps))
+
+    pooledvar = np.sum(evar) - 2 * cov
+    seu = np.sum(eu, axis=1)
+    #print seu
+    #print pooledvar
+    return (seu[1] - seu[0]) / (delta * pooledvar)
+
+
+
+def util(outcome, pow_gain, pow_loss, w_loss):
+    if outcome >= 0.:
+        return (outcome ** pow_gain)
+    else:
+        return (-w_loss * ((-outcome) ** pow_loss))
+
+
 def value(option, pow_gain, pow_loss, w_loss, w_p):
 
     v = 0.
@@ -21,15 +65,15 @@ def value(option, pow_gain, pow_loss, w_loss, w_p):
     return v
 
 
-def pweight_prelec(p, pr_elevation, pr_gamma):
-    return np.exp(-pr_elevation * ((-np.log(p)) ** pr_gamma))
+def pweight_prelec(p, prelec_elevation, prelec_gamma):
+    return np.exp(-prelec_elevation * ((-np.log(p)) ** prelec_gamma))
 
 
 def pweight(p, w):
     return pfix((p ** w) / ((p ** w + (1 - p) ** w) ** (1 / w)))
 
 
-def transition_probs(v, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, w_p):
+def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     """Get transition probabilities given parameters and current
     state.
 
@@ -41,23 +85,31 @@ def transition_probs(v, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_
     alpha -- relative prob of staying in current state (see Diederich
              and Busemeyer, 2003, p. 311)
     """
-    dr = delta * (value(options[1], pow_gain, pow_loss, w_loss, w_p) - value(options[0], pow_gain, pow_loss, w_loss, w_p))
+    dr = drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
+    p_down = (1./(2 * alpha)) * (1 - (dr) * np.sqrt(tau))
+    p_up = (1./(2 * alpha)) * (1 + (dr) * np.sqrt(tau))
+    p_stay = 1 - (1./alpha)
+
+
+    #dr = delta * (value(options[1], pow_gain, pow_loss, w_loss, w_p) - value(options[0], pow_gain, pow_loss, w_loss, w_p))
 
     # state-dependent weight depends on current state and gamma
-    sdw = gamma * v
-    p_down = (1./(2 * alpha)) * (1 - ((dr - sdw)/sigma) * np.sqrt(tau))
-    p_up = (1./(2 * alpha)) * (1 + ((dr - sdw)/sigma) * np.sqrt(tau))
-    p_stay = 1 - (1./alpha)
+    #sdw = gamma * v
+    #p_down = (1./(2 * alpha)) * (1 - ((dr - sdw)/sigma) * np.sqrt(tau))
+    #p_up = (1./(2 * alpha)) * (1 + ((dr - sdw)/sigma) * np.sqrt(tau))
+    #p_stay = 1 - (1./alpha)
     try:
         assert np.sum([p_down, p_stay, p_up])==1.
     except AssertionError:
         pass
+        #print 'GAH'
         #print p_down, p_stay, p_up
         #print np.sum([p_down, p_stay, p_up])
     return [p_down, p_stay, p_up]
 
 
-def transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, w_p):
+def transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     m = len(V)
     tm_pqr = np.zeros((m, m), float)
     tm_pqr[0,0] = 1.
@@ -74,7 +126,7 @@ def transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha, options, pow_g
     for i in range(1, m - 1):
         row = np.where(V_pqr==V[i])[0][0]
         ind_pqr = np.array([np.where(V_pqr==V[i-1])[0][0], np.where(V_pqr==V[i])[0][0], np.where(V_pqr==V[i+1])[0][0]])
-        tm_pqr[row, ind_pqr] = transition_probs(i*dv, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, w_p)
+        tm_pqr[row, ind_pqr] = transition_probs(i*dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
 
     return tm_pqr
 
@@ -164,43 +216,49 @@ def loglik_across_gambles(value, args):
         pars[k] = value[i]
         if verbose: print '  %s=%s' % (k, pars[k])
 
-    if 'z_temp' in pars and pars['z_temp'] <= 0.:
-        return np.inf
-    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
-        return np.inf
-    elif pars['theta'] < 1.:
-        return np.inf
-    elif pars['delta']<0.:
-        return np.inf
-    elif 'pow_gain' in pars and pars['pow_gain'] < 0.:
-        return np.inf
-    elif 'pow_loss' in pars and pars['pow_loss'] < 0.:
-        return np.inf
-    elif 'w_loss' in pars and pars['w_loss'] < 0.:
-        return np.inf
-    elif 'w_p' in pars and pars['w_p'] < 0.:
-        return np.inf
-    else:
 
-        llh = []
-        for gambledata in pars['data']:
+    bounds = pars['bounds']
+    for i, k in enumerate(fitting):
+        if pars[k] < bounds[i][0] or pars[k] > bounds[i][1]:
+            print 'outside bounds'
+            return np.inf
 
-            gpars = deepcopy(pars)
-            gpars.update({'data': gambledata['samplesize'],
-                          'max_T': gambledata['max_t'],
-                          'options': gambledata['options']})
+    #if 'z_temp' in pars and pars['z_temp'] <= 0.:
+    #    return np.inf
+    #elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
+    #    return np.inf
+    #elif pars['theta'] < 1.:
+    #    return np.inf
+    #elif pars['delta']<0.:
+    #    return np.inf
+    #elif 'pow_gain' in pars and pars['pow_gain'] < 0.:
+    #    return np.inf
+    #elif 'pow_loss' in pars and pars['pow_loss'] < 0.:
+    #    return np.inf
+    #elif 'w_loss' in pars and pars['w_loss'] < 0.:
+    #    return np.inf
+    #elif 'w_p' in pars and pars['w_p'] < 0.:
+    #    return np.inf
+    #else:
 
-            result = run(gpars)
+    llh = []
+    for gambledata in pars['data']:
 
-            g_llh = 0.
-            for obs in gpars['data']:
-                choice, t, grp = obs
-                g_llh += -1 * (np.log(pfix(result['p_stop_t'][t, choice])) + np.log(pfix(result['resp_prob'][choice])))
-            llh.append(g_llh)
+        gpars = deepcopy(pars)
+        gpars.update({'data': gambledata['samplesize'],
+                      'max_T': gambledata['max_t'],
+                      'options': gambledata['options']})
 
-        #print llh
-        if verbose: print '  llh: %s' % g_llh
-        return np.sum(llh)
+        result = run(gpars)
+
+        g_llh = 0.
+        for obs in gpars['data']:
+            choice, t, grp = obs
+            g_llh += -1 * (np.log(pfix(result['p_stop_t'][t, choice])) + np.log(pfix(result['resp_prob'][choice])))
+        llh.append(g_llh)
+
+    if verbose: print '  llh: %s' % np.sum(llh)
+    return np.sum(llh)
 
 
 def loglik_across_gambles_by_group(value, args):
@@ -269,7 +327,10 @@ def run(pars):
     pow_gain = pars.get('pow_gain', 1.)
     pow_loss = pars.get('pow_loss', 1.)
     w_loss = pars.get('w_loss', 1.)
-    w_p = pars.get('w_p', 1.)
+    #w_p = pars.get('w_p', 1.)
+    prelec_elevation = pars.get('prelec_elevation', 1.)
+    prelec_gamma = pars.get('prelec_gamma', 1.)
+
     delta = pars.get('delta', .1)    # drift scaling factor
 
     theta = np.round(pars.get('theta', 5))     # boundaries
@@ -284,18 +345,11 @@ def run(pars):
     dv    = pars.get('dv', 1.)
     tau   = (dv**2)/(sigma**2)       # with default settings, equal to 1.
 
-
     # create state space
     V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
     vi = range(len(V))
     m = len(V)
 
-
-    if verbose:
-        print 'theta:', theta
-        print 'V:', V
-        print 'm:', m
-        print 'delta:', delta
 
     if 'Z' in pars:
         # starting vector was provided
@@ -310,7 +364,8 @@ def run(pars):
         Z = np.zeros(m - 2)
         Z[(len(Z)/2-zhw):(len(Z)/2+zhw+1)] = 1.
         if verbose:
-            print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
+            pass
+            #print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
 
         Z = np.matrix(Z/float(sum(Z)))
     elif 'z_temp' in pars:
@@ -319,7 +374,8 @@ def run(pars):
         Z = np.exp(-np.abs(V[1:-1]) * (1/float(z_temp)))
         Z = np.matrix(Z / np.sum(Z))
         if verbose:
-            print 'z_temp:', z_temp
+            pass
+            #print 'z_temp:', z_temp
     else:
         # otherwise start with unbiased starting position
         Z = np.zeros(m - 2)
@@ -327,7 +383,7 @@ def run(pars):
         Z = np.matrix(Z)
 
     # transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, delta, sigma, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, w_p)
+    tm_pqr = transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
     Q = tm_pqr[2:,2:]
     I = np.eye(m - 2)
     R = np.matrix(tm_pqr[2:,:2])
@@ -368,12 +424,18 @@ def run(pars):
 
 if __name__ == '__main__':
 
+
+    options = [[[  4.        ,   0.5       ],
+                [ 12.        ,   0.26315789],
+                [  0.        ,   0.23684211]],
+               [[  1.  ,   0.41],
+                [  0.  ,   0.28],
+                [ 18.  ,   0.31]]]
+
     # run test
     pars = {'theta': 4,
-            'dv': .5,
-            'delta': .05,
-            'sigma': 1.,
-            'gamma': 0.}
+            'options': options,
+            'delta': .05}
 
     result = run(pars)
     print result
