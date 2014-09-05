@@ -11,6 +11,10 @@ def add_problem_labels(ax, label_h, ylim):
     return ax
 
 
+    fig, ax = plt.subplots(1, 3, figsize=(20,4))
+
+
+
 def plot_model(results):
     #V = np.arange(0, result['states_t'].shape[1]) - result['states_t'].shape[1]/2
     fig, ax = plt.subplots(1, 3, figsize=(20,4))
@@ -31,3 +35,5 @@ def plot_model(results):
     ax[2].set_xlabel('time')
 
     plt.show()
+
+

@@ -14,9 +14,6 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
     """
     sdw = gamma * v
 
-    prelec_elevation = 1.
-    prelec_gamma = 1.
-
     probs = []
     utils = []
     eu    = []
@@ -41,7 +38,11 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
     seu = np.sum(eu, axis=1)
     #print seu
     #print pooledvar
-    return (seu[1] - seu[0]) / (delta * pooledvar)
+
+    #print 'pooled variance:', pooledvar
+    #print 'summed expected utility:', seu
+    #print 'drift:', (seu[1] - seu[0]) / np.sqrt(pooledvar)
+    return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
 
 
 
