@@ -3,7 +3,7 @@ import numpy as np
 
 
 def bic(f, pars):
-    return -2 * np.log(f['fun']) + len(pars['fitting']) * np.log(np.sum([d['samplesize'].size for d in pars['data']]))
+    return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samplesize'].size for d in pars['data']]))
 
 
 def add_problem_labels(ax, label_h, ylim):

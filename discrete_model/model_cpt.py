@@ -308,7 +308,8 @@ def run(pars):
 
     options = pars.get('options')
     pow_gain = pars.get('pow_gain', 1.)
-    pow_loss = pars.get('pow_loss', 1.)
+    pow_loss = pars.get('pow_loss', pow_gain) # if not provided, assume
+                                              # same as pow_gain
     w_loss = pars.get('w_loss', 1.)
     #w_p = pars.get('w_p', 1.)
     prelec_elevation = pars.get('prelec_elevation', 1.)
