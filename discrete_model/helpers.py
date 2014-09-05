@@ -1,4 +1,10 @@
 import matplotlib.pylab as plt
+import numpy as np
+
+
+def bic(f, pars):
+    return -2 * np.log(f['fun']) + len(pars['fitting']) * np.log(np.sum([d['samplesize'].size for d in pars['data']]))
+
 
 def add_problem_labels(ax, label_h, ylim):
     ax.plot([21, 21], ylim, 'k--')
@@ -9,10 +15,6 @@ def add_problem_labels(ax, label_h, ylim):
     t = ax.text(52, label_h, "Loss, HH-LL", ha="center", va="center", size=15)
     t = ax.text(74, label_h, "Loss, HL-LH", ha="center", va="center", size=15)
     return ax
-
-
-    fig, ax = plt.subplots(1, 3, figsize=(20,4))
-
 
 
 def plot_model(results):

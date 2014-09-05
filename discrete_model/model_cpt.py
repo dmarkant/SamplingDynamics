@@ -224,24 +224,6 @@ def loglik_across_gambles(value, args):
             print 'outside bounds'
             return np.inf
 
-    #if 'z_temp' in pars and pars['z_temp'] <= 0.:
-    #    return np.inf
-    #elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
-    #    return np.inf
-    #elif pars['theta'] < 1.:
-    #    return np.inf
-    #elif pars['delta']<0.:
-    #    return np.inf
-    #elif 'pow_gain' in pars and pars['pow_gain'] < 0.:
-    #    return np.inf
-    #elif 'pow_loss' in pars and pars['pow_loss'] < 0.:
-    #    return np.inf
-    #elif 'w_loss' in pars and pars['w_loss'] < 0.:
-    #    return np.inf
-    #elif 'w_p' in pars and pars['w_p'] < 0.:
-    #    return np.inf
-    #else:
-
     llh = []
     for gambledata in pars['data']:
 
