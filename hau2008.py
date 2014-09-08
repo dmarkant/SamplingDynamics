@@ -35,6 +35,17 @@ def load_study(study):
     return df_samples, df_choices
 
 
+def samplesize(study, gid):
+    df_samples, df_choices = load_study(study)
+    return df_samples[df_samples['problem']==(gid+1)].sort('subject').groupby('subject').apply(lambda x: len(x)).values
+
+
+def choices(study, gid):
+    df_samples, df_choices = load_study(study)
+    c = df_choices[df_choices['problem']==(gid+1)].sort('subject')['choice'].values
+    return np.abs(c - 1)
+
+
 def get_options(study, gid):
 
     if study==1 or study==2:

@@ -1,0 +1,896 @@
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277033
+Value  :	1.13624498913	
+BIC    :	2754.27947407
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277057
+Value  :	1.13622858053	
+BIC    :	2754.27947455
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1365.71930745
+Value  :	0.000664299926896	1.69185278799e-06	
+BIC    :	2744.54648171
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.40441613
+Value  :	0.00145452590139	0.000738132551156	6.10271112485e-05	
+BIC    :	2750.47063247
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	
+Success:	True
+NegLLH :	1390.7678271
+Value  :	0.962433793516	
+BIC    :	2788.0895876
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1366.02340037
+Value  :	0.922487553316	0.855161501168	
+BIC    :	2745.15466755
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1723.3815563
+Value  :	1.04795526583	0.248653206501	0.878708855963	
+BIC    :	3466.42491282
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1365.95320661
+Value  :	1.17056656821	0.92242000966	
+BIC    :	2745.01428002
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277055
+Value  :	1.13625947757	
+BIC    :	2754.2794745
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277035
+Value  :	1.13624050648	
+BIC    :	2754.2794741
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277075
+Value  :	1.1362653475	
+BIC    :	2754.27947491
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1373.86277147
+Value  :	1.13621015478	
+BIC    :	2754.27947633
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1365.71946093
+Value  :	0.000765544546295	5.75719342332e-05	
+BIC    :	2744.54678867
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.40475658
+Value  :	0.00147063749178	0.000752165749186	5.42799346669e-05	
+BIC    :	2750.47131337
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	
+Success:	True
+NegLLH :	1390.76782694
+Value  :	0.962454648721	
+BIC    :	2788.08958729
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1366.0234
+Value  :	0.922537264452	0.8552053547	
+BIC    :	2745.15466681
+
+Fixed:	theta=5
+Fitting:	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.88132148
+Value  :	0.924071508176	0.864732446407	0.846014586342	
+BIC    :	2751.42444318
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	2318.54841029
+Value  :	0.234255453107	1.40773043609e-06	
+BIC    :	4650.20468739
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1365.50088964
+Value  :	0.0447266182472	0.911857543142	0.0345689887939	
+BIC    :	2750.66357949
+
+Fixed:	theta=5
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.35282815
+Value  :	0.0244270886954	0.922632106281	0.0189367226794	0.0169198140991	
+BIC    :	2756.92138991
+
+Fixed:	theta=5
+Fitting:	delta	
+Success:	True
+NegLLH :	1368.21645936
+Value  :	1.11022302463e-16	
+BIC    :	2742.98685213
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	
+Success:	True
+NegLLH :	1368.21645936
+Value  :	1.73604851874e-11	0.966837868408	
+BIC    :	2749.54078553
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1368.21645936
+Value  :	9.5817431976e-13	0.171011642765	0.479251704084	
+BIC    :	2756.09471894
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.45316397
+Value  :	0.131735959026	0.321004350031	0.224721417163	0.158451510996	
+BIC    :	2757.12206155
+
+Fixed:	theta=5
+Fitting:	delta	prelec_gamma	
+Success:	False
+NegLLH :	1365.79872188
+Value  :	6.36753605917e-06	3.72818936625	
+BIC    :	2744.70531057
+
+Fixed:	theta=5
+Fitting:	delta	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1365.50116791
+Value  :	0.320128382821	0.932335409128	0.781794111354	
+BIC    :	2750.66413603
+
+Fixed:	theta=5
+Fitting:	delta	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1368.21645942
+Value  :	1.39167105827e-09	0.155444886008	0.62896876124	1.27765455772	
+BIC    :	2762.64865246
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1368.21645937
+Value  :	6.18771865445e-11	1.04438251886	0.187057974675	
+BIC    :	2756.09471894
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	
+Success:	False
+NegLLH :	1365.50221836
+Value  :	0.297713174851	1.2167467543	0.939011583595	0.94242766278	
+BIC    :	2757.22017034
+
+Fixed:	theta=5
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1365.94557859
+Value  :	0.0226840175577	1.11206114166	0.122081708656	2.82497383781e-05	0.028291867515	
+BIC    :	2764.66082419
+
+Fixed:	theta=5
+Fitting:	z_temp	
+Success:	True
+NegLLH :	1290.05085766
+Value  :	1.0702037476	
+BIC    :	2586.65564873
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1271.70297216
+Value  :	1.05340616491	1.13999329531	
+BIC    :	2556.51381113
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1263.58168179
+Value  :	1.05365765886	0.000775779724852	9.22996600568e-10	
+BIC    :	2546.8251638
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1264.42540521
+Value  :	1.3345507549	0.00153736255038	0.000701766792712	1.28608539565e-06	
+BIC    :	2555.06654404
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_gamma	
+Success:	True
+NegLLH :	1288.4221026
+Value  :	1.07074161352	0.963456036633	
+BIC    :	2589.95207202
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	2221.08223098
+Value  :	0.935737707023	0.405173435657	4.27796955469e-05	
+BIC    :	4461.82626216
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	2376.16966746
+Value  :	0.326263130729	0.0867448878107	1.79801571984e-10	0.471644683227	
+BIC    :	4778.55506854
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	2301.65690586
+Value  :	0.602443532638	0.210992937768	0.176864185244	
+BIC    :	4622.97561194
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1263.40299505
+Value  :	1.05441509902	0.00120458727919	0.563796947777	3.73973824862e-08	
+BIC    :	2553.02172371
+
+Fixed:	theta=5
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1263.24013207
+Value  :	1.05474311136	0.00989396752436	0.887109687618	0.00655126942499	0.00527481361597	
+BIC    :	2559.24993116
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	
+Success:	True
+NegLLH :	1266.34248506
+Value  :	8.44855908136e-07	1.0486707349	
+BIC    :	2545.79283693
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1266.34152717
+Value  :	3.0693961253e-10	1.0553871841	0.593210688121	
+BIC    :	2552.34485456
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	2808.24402397
+Value  :	0.897412645835	0.850330227317	0.017592833854	0.907372858758	
+BIC    :	5642.70378156
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1263.33411205
+Value  :	0.162211919591	1.05387960254	0.090607074306	0.0504936836902	0.0205364491503	
+BIC    :	2559.43789111
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_gamma	
+Success:	True
+NegLLH :	1266.75073096
+Value  :	3.56250563648e-08	0.927099623661	0.23235943186	
+BIC    :	2553.16326214
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1365.50116807
+Value  :	0.320051685156	0.0545595120895	0.93233683449	0.781767031456	
+BIC    :	2757.21806976
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1266.34152715
+Value  :	6.06695935637e-09	1.05541169733	0.591376737418	2.07547157951	0.650728575906	
+BIC    :	2565.45272132
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1266.34152714
+Value  :	3.98305332723e-10	1.05543792753	1.03815372372	0.798411204279	
+BIC    :	2558.89878789
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1266.34152732
+Value  :	5.59661766236e-09	1.05546364941	1.02705271219	0.00462831061741	0.88234529609	
+BIC    :	2565.45272167
+
+Fixed:	theta=5
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1263.23864828
+Value  :	0.2696063824	1.05450802685	0.224132367682	0.896717983983	0.157769898324	0.135578597409	
+BIC    :	2565.80089699
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1430.65441782
+Value  :	1.13000099415	
+BIC    :	2867.86276905
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1422.69617442
+Value  :	0.00143533805597	0.000550101471252	
+BIC    :	2858.50021566
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1422.53942985
+Value  :	0.00093552196494	0.000410422477703	1.72617729317e-05	
+BIC    :	2864.74065991
+
+Fixed:	theta=4
+Fitting:	prelec_gamma	
+Success:	True
+NegLLH :	1444.38293505
+Value  :	0.956658027153	
+BIC    :	2895.31980351
+
+Fixed:	theta=4
+Fitting:	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1423.1392254
+Value  :	0.921070185991	0.86083044872	
+BIC    :	2859.38631761
+
+Fixed:	theta=4
+Fitting:	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1423.0836064
+Value  :	0.921913863178	0.867172800498	0.854881865451	
+BIC    :	2865.82901302
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1423.06968575
+Value  :	1.16290069051	0.920785808032	
+BIC    :	2859.24723831
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1422.58565589
+Value  :	0.0272956734956	0.91342121034	0.020818667926	
+BIC    :	2864.83311199
+
+Fixed:	theta=4
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1739.31770501
+Value  :	0.099873660021	0.102022370282	0.614503824744	0.540243018503	
+BIC    :	3504.85114363
+
+Fixed:	theta=4
+Fitting:	delta	
+Success:	True
+NegLLH :	1424.44683324
+Value  :	2.30988932396e-05	
+BIC    :	2855.44759988
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	
+Success:	True
+NegLLH :	1422.60161587
+Value  :	0.0732603719461	1.68851030647	
+BIC    :	2858.31109855
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1422.67750716
+Value  :	0.0542131311024	0.238727162401	0.0472220043906	
+BIC    :	2865.01681453
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1422.55189457
+Value  :	0.135194931022	0.0450566833502	0.0182432994193	4.69264485085e-06	
+BIC    :	2871.31952275
+
+Fixed:	theta=4
+Fitting:	delta	prelec_gamma	
+Success:	False
+NegLLH :	1422.79848331
+Value  :	5.8261390665e-06	3.72093299564	
+BIC    :	2858.70483343
+
+Fixed:	theta=4
+Fitting:	delta	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1422.58671537
+Value  :	0.245736184996	0.935724518742	0.770760292757	
+BIC    :	2864.83523095
+
+Fixed:	theta=4
+Fitting:	delta	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1422.60656383
+Value  :	0.0170172312522	0.761353826889	0.0387440325781	0.00333304067875	
+BIC    :	2871.42886128
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1424.4467214
+Value  :	5.60191005364e-09	1.2547408238	0.202412983608	
+BIC    :	2868.55524301
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	
+Success:	False
+NegLLH :	1671.47626301
+Value  :	1.6239444455	0.0807347985351	0.00564744464881	0.360010610313	
+BIC    :	3369.16825964
+
+Fixed:	theta=4
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	False
+NegLLH :	1645.2535719
+Value  :	1.33679923688	0.137438362483	0.0107422897291	0.423365093323	0.445520906399	
+BIC    :	3323.27681081
+
+Fixed:	theta=4
+Fitting:	z_temp	
+Success:	True
+NegLLH :	1364.04599462
+Value  :	0.603796855168	
+BIC    :	2734.64592265
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1348.02579291
+Value  :	0.600683239175	1.13227522793	
+BIC    :	2709.15945263
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1613.21802001
+Value  :	0.318942576904	1.09258392617	0.179133302271	
+BIC    :	3246.09784024
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1455.57220331
+Value  :	0.486209390725	3.61659331997	1.43799298243	2.78925677359	
+BIC    :	2937.36014024
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_gamma	
+Success:	True
+NegLLH :	1444.38293501
+Value  :	0.0271145421077	0.956651867499	
+BIC    :	2901.87373683
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1340.65328691
+Value  :	0.600372913885	0.920086419734	0.858497984349	
+BIC    :	2700.96837403
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1340.60110435
+Value  :	0.600375284957	0.920944143226	0.864789335379	0.852766584506	
+BIC    :	2707.41794232
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1423.06968614
+Value  :	0.0192692197682	1.16292676113	0.920739936569	
+BIC    :	2865.80117249
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1341.91906362
+Value  :	0.781231428335	0.000775961973686	1.06112882538e-05	7.42465520537e-08	
+BIC    :	2710.05386086
+
+Fixed:	theta=4
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1340.11949418
+Value  :	0.60070720713	0.000860008201376	0.425147126341	3.87318693033e-06	6.96242538077e-10	
+BIC    :	2713.00865538
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	
+Success:	True
+NegLLH :	1342.01119009
+Value  :	6.31701540882e-07	0.600224505151	
+BIC    :	2697.130247
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1340.05782681
+Value  :	0.0746318749935	0.600556694979	1.70346891945	
+BIC    :	2699.77745384
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1340.05772664
+Value  :	0.079693706002	0.60056641454	1.79633581194	1.07587465344	
+BIC    :	2706.3311869
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1340.01261519
+Value  :	0.0954846437722	0.600406856007	0.911968114368	0.619325528218	0.533842504997	
+BIC    :	2712.7948974
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_gamma	
+Success:	False
+NegLLH :	1340.31337519
+Value  :	1.033074499e-05	0.600866910985	3.66073032211	
+BIC    :	2700.2885506
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1422.60209827
+Value  :	0.023465215974	1.29731063696e-07	0.8075436318	0.151606941921	
+BIC    :	2871.41993017
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1339.94266267
+Value  :	0.239254459199	0.600618435438	0.937042893295	0.791733807785	0.734562490726	
+BIC    :	2712.65499237
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1342.01118258
+Value  :	2.04850885023e-08	0.600462696957	1.1213660195	0.0516689979019	
+BIC    :	2710.23809878
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1342.01118225
+Value  :	1.85696509411e-08	0.600507279808	0.778970146437	0.00200020315231	0.514506318181	
+BIC    :	2716.79203153
+
+Fixed:	theta=4
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1342.011182
+Value  :	8.00051876508e-11	0.600517752834	0.359900077456	0.0576319658619	0.969904794129	0.143388932544	
+BIC    :	2723.34596442
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	
+Success:	True
+NegLLH :	1383.14453402
+Value  :	1.14494130783	
+BIC    :	2772.84300143
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1374.74726344
+Value  :	0.000932376905238	4.81154843926e-05	
+BIC    :	2762.60239369
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1374.31386514
+Value  :	0.00190762917748	0.000972164536664	9.43718112414e-05	
+BIC    :	2768.28953049
+
+Fixed:	theta=6
+Fitting:	prelec_gamma	
+Success:	True
+NegLLH :	1403.61304594
+Value  :	0.962529298206	
+BIC    :	2813.78002529
+
+Fixed:	theta=6
+Fitting:	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1374.90873197
+Value  :	0.923746085117	0.85046021826	
+BIC    :	2762.92533075
+
+Fixed:	theta=6
+Fitting:	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1638.51081875
+Value  :	1.04350941592	0.231658304831	0.867261905675	
+BIC    :	3296.68343771
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	2058.13563739
+Value  :	0.218755531071	1.80450050498e-08	
+BIC    :	4129.37914158
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1374.44783818
+Value  :	0.0629795955737	0.914481581098	0.0490637800341	
+BIC    :	2768.55747656
+
+Fixed:	theta=6
+Fitting:	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1830.62681493
+Value  :	0.113834440328	0.0126338106408	0.569706332373	0.0496451214303	
+BIC    :	3687.46936347
+
+Fixed:	theta=6
+Fitting:	delta	
+Success:	True
+NegLLH :	1378.14532161
+Value  :	0.0	
+BIC    :	2762.84457662
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	
+Success:	True
+NegLLH :	1374.47546879
+Value  :	0.0834572874001	1.77908209843	
+BIC    :	2762.05880439
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1378.14532162
+Value  :	7.33073938342e-11	0.112808073674	0.627854387113	
+BIC    :	2775.95244346
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1378.14532161
+Value  :	9.00824716866e-13	0.390475273766	0.304702830502	0.63343813295	
+BIC    :	2782.50637683
+
+Fixed:	theta=6
+Fitting:	delta	prelec_gamma	
+Success:	False
+NegLLH :	1374.84094529
+Value  :	4.03642075081e-06	3.78951024742	
+BIC    :	2762.78975738
+
+Fixed:	theta=6
+Fitting:	delta	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1374.47446154
+Value  :	0.0331022527001	0.847557802578	0.18653130303	
+BIC    :	2768.61072328
+
+Fixed:	theta=6
+Fitting:	delta	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1374.1347666
+Value  :	0.380387932268	0.940239169809	0.821222053484	0.759243345811	
+BIC    :	2774.48526681
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1378.14532167
+Value  :	1.00374943497e-09	0.639465997998	0.84466375807	
+BIC    :	2775.95244356
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1378.14532161
+Value  :	1.51628780398e-12	0.601178375636	0.751550122344	0.65284672763	
+BIC    :	2782.50637683
+
+Fixed:	theta=6
+Fitting:	delta	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	False
+NegLLH :	1372.83827434
+Value  :	7.77834951035	7.63847183199	1.00617217155	5.89646629384	5.82577462956	
+BIC    :	2778.4462157
+
+Fixed:	theta=6
+Fitting:	z_temp	
+Success:	True
+NegLLH :	1278.01298826
+Value  :	1.74985541945	
+BIC    :	2562.57990993
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1256.36988399
+Value  :	1.69815895794	1.1538090564	
+BIC    :	2525.84763479
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1247.83473516
+Value  :	1.69910977401	4.49194268129	3.37031858857	
+BIC    :	2515.33127053
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1566.15553713
+Value  :	0.189527196652	0.0540744423975	0.047760339818	1.37243438282	
+BIC    :	3158.52680787
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_gamma	
+Success:	True
+NegLLH :	1276.10409993
+Value  :	1.75203773505	0.960278118419	
+BIC    :	2565.31606666
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1374.90876089
+Value  :	0.0850173859141	0.923744378865	0.850436770416	
+BIC    :	2769.47932198
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1374.68262984
+Value  :	0.000930697507727	0.925888618666	0.862163921219	0.839496318581	
+BIC    :	2775.5809933
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1374.84448945
+Value  :	0.0828592531901	1.17708639957	0.924043164547	
+BIC    :	2769.35077912
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1248.34494092
+Value  :	1.69093360417	0.00077426141585	1.24788874316	9.06198498834e-12	
+BIC    :	2522.90561545
+
+Fixed:	theta=6
+Fitting:	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1374.81613578
+Value  :	0.0363242762436	0.626437376475	0.927053072626	0.537899455315	0.526672727225	
+BIC    :	2782.40193859
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	
+Success:	True
+NegLLH :	1251.84340498
+Value  :	5.2009645904e-09	1.70156460395	
+BIC    :	2516.79467676
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	
+Success:	True
+NegLLH :	1271.10475185
+Value  :	1.92639440718e-09	0.752143597826	2.14464562245e-05	
+BIC    :	2561.87130392
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	
+Success:	True
+NegLLH :	1247.78946568
+Value  :	0.19743301426	1.69803493647	3.02639910455	1.96473938356	
+BIC    :	2521.79466497
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1251.84340474
+Value  :	2.71277560311e-10	1.70135046908	0.0576953419432	0.18049682455	0.269231946978	
+BIC    :	2536.4564765
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_gamma	
+Success:	False
+NegLLH :	1258.8184326
+Value  :	5.84911154671e-13	0.91272610103	4.80944875765	
+BIC    :	2537.29866541
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1247.735321
+Value  :	0.164939824669	1.69808809034	0.895804928545	0.624241860186	
+BIC    :	2521.68637562
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1247.47722598
+Value  :	0.315599465155	1.69801844969	0.922081181628	0.778703972538	0.70941274344	
+BIC    :	2527.72411898
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	
+Success:	True
+NegLLH :	1251.8434047
+Value  :	1.06022537507e-11	1.70135996993	0.241793367448	0.220407923006	
+BIC    :	2529.90254302
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	
+Success:	True
+NegLLH :	1252.88624491
+Value  :	2.65513777302e-05	1.36850607492	0.00105087646792	0.642653654743	1.03856042244e-07	
+BIC    :	2538.54215685
+
+Fixed:	theta=6
+Fitting:	delta	z_temp	prelec_elevation	prelec_gamma	pow_gain	pow_loss	
+Success:	True
+NegLLH :	1247.70500443
+Value  :	0.455890833917	1.65036977147	0.0106216551455	0.50530670825	0.0013626046407	3.41884947376e-13	
+BIC    :	2534.73360929

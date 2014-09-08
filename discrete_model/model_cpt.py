@@ -2,10 +2,7 @@ import numpy as np
 from scipy import linalg
 from numpy.linalg import matrix_power
 from copy import deepcopy
-
-
-def pfix(p):
-    return np.min([np.max([p, 1e-5]), 1-(1e-5)])
+from fitting import *
 
 
 def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
@@ -25,23 +22,27 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
         utils.append([util(outcome, pow_gain, pow_loss, w_loss) for (outcome, prob) in option])
 
         eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
-
-        # variance of this option
-        evar.append(np.sum([probs[opt_i][i] * utils[opt_i][i] ** 2 for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
-
+        
+        evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
 
     outs =  np.outer(utils[0] - eu[0], utils[1] - eu[1])
     ps   = np.outer(probs[0], probs[1])
     cov = np.sum(np.multiply(outs, ps))
-
     pooledvar = np.sum(evar) - 2 * cov
     seu = np.sum(eu, axis=1)
-    #print seu
-    #print pooledvar
 
-    #print 'pooled variance:', pooledvar
-    #print 'summed expected utility:', seu
-    #print 'drift:', (seu[1] - seu[0]) / np.sqrt(pooledvar)
+    #print 'seu:', seu
+    #print 'delta:', delta
+    #print 'evar:', evar
+    #print 'cov:', cov
+    #print 'poolvar:', pooledvar
+    #print 'sigma:', np.sqrt(pooledvar)
+
+    try:
+        assert np.isnan(cov)==False and pooledvar > 0
+    except:
+        print 'problem with variance in drift rate!'
+
     return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
 
 
@@ -92,21 +93,11 @@ def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w
     p_up = (1./(2 * alpha)) * (1 + (dr) * np.sqrt(tau))
     p_stay = 1 - (1./alpha)
 
-
-    #dr = delta * (value(options[1], pow_gain, pow_loss, w_loss, w_p) - value(options[0], pow_gain, pow_loss, w_loss, w_p))
-
-    # state-dependent weight depends on current state and gamma
-    #sdw = gamma * v
-    #p_down = (1./(2 * alpha)) * (1 - ((dr - sdw)/sigma) * np.sqrt(tau))
-    #p_up = (1./(2 * alpha)) * (1 + ((dr - sdw)/sigma) * np.sqrt(tau))
-    #p_stay = 1 - (1./alpha)
     try:
-        assert np.sum([p_down, p_stay, p_up])==1.
+        assert np.round(np.sum([p_down, p_stay, p_up]), 5)==1.
     except AssertionError:
-        pass
-        #print 'GAH'
-        #print p_down, p_stay, p_up
-        #print np.sum([p_down, p_stay, p_up])
+        print 'GAH'
+        print np.sum([p_down, p_stay, p_up])
     return [p_down, p_stay, p_up]
 
 
@@ -209,24 +200,12 @@ def loglik_factor(value, args):
 
 
 def loglik_across_gambles(value, args):
-    verbose = args.get('verbose', False)
-    pars = deepcopy(args)
-    fitting = pars['fitting']
-    if verbose: print 'evaluating:'
-    for i, k in enumerate(fitting):
-        pars[k] = value[i]
-        if verbose: print '  %s=%s' % (k, pars[k])
-
-
-    bounds = pars['bounds']
-    for i, k in enumerate(fitting):
-        if pars[k] < bounds[i][0] or pars[k] > bounds[i][1]:
-            print 'outside bounds'
-            return np.inf
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
 
     llh = []
     for gambledata in pars['data']:
-
+    
         gpars = deepcopy(pars)
         gpars.update({'data': gambledata['samplesize'],
                       'max_T': gambledata['max_t'],
@@ -245,60 +224,47 @@ def loglik_across_gambles(value, args):
 
 
 def loglik_across_gambles_by_group(value, args):
-    verbose = args.get('verbose', False)
-    pars = deepcopy(args)
-    fitting = pars['fitting']
-    if verbose: print 'evaluating:'
-    for i, k in enumerate(fitting):
-        pars[k] = value[i]
-        if verbose: print '  %s=%s' % (k, pars[k])
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
 
-    if 'z_temp' in pars and pars['z_temp'] <= 0.:
-        return np.inf
-    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
-        return np.inf
-    elif pars['delta']<0.:
-        return np.inf
-    elif pars['theta(0)'] < 1. or pars['theta(1)'] < 1.:
-        return np.inf
-    elif 'pow_gain' in pars and pars['pow_gain'] < 0.:
-        return np.inf
-    elif 'pow_loss' in pars and pars['pow_loss'] < 0.:
-        return np.inf
-    elif 'w_loss' in pars and pars['w_loss'] < 0.:
-        return np.inf
-    elif 'w_p' in pars and pars['w_p'] < 0.:
-        return np.inf
-    else:
+    llh = []
+    for gambledata in pars['data']:
+        gpars_0 = deepcopy(pars)
+        gpars_1 = deepcopy(pars)
+        gpars_0.update({'data': gambledata['samplesize'],
+                        'max_T': gambledata['max_t'],
+                        'options': gambledata['options']})
+        gpars_1.update({'data': gambledata['samplesize'],
+                        'max_T': gambledata['max_t'],
+                        'options': gambledata['options']})
 
-        llh = []
-        for gambledata in pars['data']:
+        if 'theta(0)' in pars:
+            gpars_0.update({'theta': gpars_0['theta(0)']})
+            gpars_1.update({'theta': gpars_1['theta(1)']})
 
-            gpars_0 = deepcopy(pars)
-            gpars_0.update({'theta': gpars_0['theta(0)'],
-                            'data': gambledata['samplesize'],
-                            'max_T': gambledata['max_t'],
-                            'options': gambledata['options']
-                            })
-            gpars_1 = deepcopy(pars)
-            gpars_1.update({'theta': gpars_1['theta(1)'],
-                            'data': gambledata['samplesize'],
-                            'max_T': gambledata['max_t'],
-                            'options': gambledata['options']
-                            })
+        if 'pow_gain(0)' in pars:
+            gpars_0.update({'pow_gain': gpars_0['pow_gain(0)']})
+            gpars_1.update({'pow_gain': gpars_1['pow_gain(1)']})
+        
+        if 'pow_loss(0)' in pars:
+            gpars_0.update({'pow_loss': gpars_0['pow_loss(0)']})
+            gpars_1.update({'pow_loss': gpars_1['pow_loss(1)']})
 
-            result = [run(gpars_0), run(gpars_1)]
+        if 'delta(0)' in pars:
+            gpars_0.update({'delta': gpars_0['delta(0)']})
+            gpars_1.update({'delta': gpars_1['delta(1)']})
 
-            g_llh = 0.
-            for obs in gpars_0['data']:
-                choice, t, grp = obs
-                g_llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])) + np.log(pfix(result[grp]['resp_prob'][choice])))
-            llh.append(g_llh)
+        result = [run(gpars_0), run(gpars_1)]
 
-        #print llh
-        if verbose: print '  llh: %s' % g_llh
-        return np.sum(llh)
+        g_llh = 0.
+        for obs in gpars_0['data']:
+            choice, t, grp = obs
+            g_llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])) + np.log(pfix(result[grp]['resp_prob'][choice])))
+        llh.append(g_llh)
 
+    #print llh
+    if verbose: print '  llh: %s' % g_llh
+    return np.sum(llh)
 
 
 
@@ -311,13 +277,12 @@ def run(pars):
     pow_loss = pars.get('pow_loss', pow_gain) # if not provided, assume
                                               # same as pow_gain
     w_loss = pars.get('w_loss', 1.)
-    #w_p = pars.get('w_p', 1.)
     prelec_elevation = pars.get('prelec_elevation', 1.)
     prelec_gamma = pars.get('prelec_gamma', 1.)
 
-    delta = pars.get('delta', .1)    # drift scaling factor
+    delta = pars.get('delta', 1.)    # drift scaling factor
 
-    theta = np.round(pars.get('theta', 5))     # boundaries
+    theta = np.float(np.round(pars.get('theta', 5)))     # boundaries
 
     sigma = pars.get('sigma', 1.)    # diffusion parameter
     gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
@@ -368,6 +333,7 @@ def run(pars):
 
     # transition matrix
     tm_pqr = transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
     Q = tm_pqr[2:,2:]
     I = np.eye(m - 2)
     R = np.matrix(tm_pqr[2:,:2])

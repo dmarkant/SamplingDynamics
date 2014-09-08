@@ -1,5 +1,6 @@
 import matplotlib.pylab as plt
 import numpy as np
+from model_cpt import pweight_prelec, util
 
 
 def bic(f, pars):
@@ -39,3 +40,28 @@ def plot_model(results):
     plt.show()
 
 
+def plot_probability_weighting_fcn_prelec(elevation, gamma):
+    ps = np.arange(0, 1, .01)
+    fig, ax = plt.subplots()
+    ax.plot(ps, ps, '--')
+    ax.plot(ps, [pweight_prelec(p, elevation, gamma) for p in ps], label='model')
+    ax.set_aspect(1)
+    ax.set_xlabel('true')
+    ax.set_ylabel('weighted')
+    ax.set_title('Probability weighting fcn')
+    ax.legend()
+    plt.show()
+
+
+def plot_value_weighting_fcn(pow_gain, pow_loss=1, w_loss=1):
+    xs = np.arange(-30, 30, .05)
+    fig, ax = plt.subplots()
+    ax.plot(xs, xs, '--')
+    ax.plot(xs, [util(x, pow_gain, pow_loss, w_loss) for x in xs], label='best-fitting pow_gain, pow_loss')
+    ax.set_aspect(1)
+    ax.set_xlabel('true')
+    ax.set_ylabel('weighted')
+    ax.set_title('Value weighting fcn')
+    ax.set_ylim([-20,20])
+    ax.legend()
+    plt.show()

@@ -1,8 +1,14 @@
 import numpy as np
+from fitting import *
+from copy import deepcopy
 
 
-def pfix(p):
-    return np.min([np.max([p, 1e-5]), 1-(1e-5)])
+def util(outcome, pow_gain, pow_loss, w_loss):
+    if outcome >= 0.:
+        return (outcome ** pow_gain)
+    else:
+        return (-w_loss * ((-outcome) ** pow_loss))
+
 
 
 def value(option, pow_gain, pow_loss, w_loss, w_p):
@@ -33,3 +39,12 @@ def choice_prob(options, cpt_pars):
 def loglik(value, pars):
 
     print 'llh'
+
+
+def loglik_across_gambles(value, args):
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
+
+    llh = []
+    for gambledata in pars['data']:
+        gpars = deepcopy

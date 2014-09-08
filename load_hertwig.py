@@ -17,8 +17,8 @@ GAMBLES = [[np.array([[3, 1.], [0., 0.]]),
            ]
 
 
-pth = '/Users/markant/code/SamplingDynamics/hertwig_2004.txt'
-pth_json = '/Users/markant/code/SamplingDynamics/hertwig_2004.json'
+pth = '/Users/doug/code/SamplingDynamics/hertwig_2004.txt'
+pth_json = '/Users/doug/code/SamplingDynamics/hertwig_2004.json'
 
 def parse_to_json():
 
