@@ -3,7 +3,7 @@ from scipy import linalg
 from numpy.linalg import matrix_power
 from copy import deepcopy
 from fitting import *
-from cpt import util, pweight_prelec
+from cogmod.cpt import util, pweight_prelec
 
 def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     """
@@ -22,7 +22,7 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
         utils.append([util(outcome, pow_gain, pow_loss, w_loss) for (outcome, prob) in option])
 
         eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
-        
+
         evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
 
     outs =  np.outer(utils[0] - eu[0], utils[1] - eu[1])
@@ -138,7 +138,7 @@ def loglik_across_gambles(value, args):
 
     llh = []
     for gambledata in pars['data']:
-    
+
         gpars = deepcopy(pars)
         gpars.update({'data': gambledata['samplesize'],
                       'max_T': gambledata['max_t'],
@@ -178,7 +178,7 @@ def loglik_across_gambles_by_group(value, args):
         if 'pow_gain(0)' in pars:
             gpars_0.update({'pow_gain': gpars_0['pow_gain(0)']})
             gpars_1.update({'pow_gain': gpars_1['pow_gain(1)']})
-        
+
         if 'pow_loss(0)' in pars:
             gpars_0.update({'pow_loss': gpars_0['pow_loss(0)']})
             gpars_1.update({'pow_loss': gpars_1['pow_loss(1)']})
