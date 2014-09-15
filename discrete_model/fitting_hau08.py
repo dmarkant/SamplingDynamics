@@ -8,6 +8,8 @@ PARSETS = [['theta'],
            ['theta', 'prelec_elevation', 'prelec_gamma'],
            ['theta', 'prelec_elevation', 'prelec_gamma', 'pow_gain'],
            ['theta', 'prelec_elevation', 'prelec_gamma', 'pow_gain', 'pow_loss'],
+           ['theta', 'pow_gain'],
+           ['theta', 'pow_gain', 'pow_loss'],
            ['theta', 'delta'],
            ['theta', 'delta', 'prelec_elevation'],
            ['theta', 'delta', 'prelec_elevation', 'pow_gain'],
@@ -18,6 +20,8 @@ PARSETS = [['theta'],
            ['theta', 'delta', 'prelec_elevation', 'prelec_gamma'],
            ['theta', 'delta', 'prelec_elevation', 'prelec_gamma', 'pow_gain'],
            ['theta', 'delta', 'prelec_elevation', 'prelec_gamma', 'pow_gain', 'pow_loss'],
+           ['theta', 'delta', 'pow_gain'],
+           ['theta', 'delta', 'pow_gain', 'pow_loss'],
            ['theta', 'z_temp'],
            ['theta', 'z_temp', 'prelec_elevation'],
            ['theta', 'z_temp', 'prelec_elevation', 'pow_gain'],
@@ -28,6 +32,8 @@ PARSETS = [['theta'],
            ['theta', 'z_temp', 'prelec_elevation', 'prelec_gamma'],
            ['theta', 'z_temp', 'prelec_elevation', 'prelec_gamma', 'pow_gain'],
            ['theta', 'z_temp', 'prelec_elevation', 'prelec_gamma', 'pow_gain', 'pow_loss'],
+           ['theta', 'z_temp', 'pow_gain'],
+           ['theta', 'z_temp', 'pow_gain', 'pow_loss'],
            ['theta', 'delta', 'z_temp'],
            ['theta', 'delta', 'z_temp', 'prelec_elevation'],
            ['theta', 'delta', 'z_temp', 'prelec_elevation', 'pow_gain'],
@@ -37,12 +43,63 @@ PARSETS = [['theta'],
            ['theta', 'delta', 'z_temp', 'prelec_gamma', 'pow_gain', 'pow_loss'],
            ['theta', 'delta', 'z_temp', 'prelec_elevation', 'prelec_gamma'],
            ['theta', 'delta', 'z_temp', 'prelec_elevation', 'prelec_gamma', 'pow_gain'],
-           ['theta', 'delta', 'z_temp', 'prelec_elevation', 'prelec_gamma', 'pow_gain', 'pow_loss']
+           ['theta', 'delta', 'z_temp', 'prelec_elevation', 'prelec_gamma', 'pow_gain', 'pow_loss'],
+           ['theta', 'delta', 'z_temp', 'pow_gain'],
+           ['theta', 'delta', 'z_temp', 'pow_gain', 'pow_loss']
            ]
 
 fitlog = 'fits_hau_study1_gridTheta.txt'
 
 fitresults_grid_theta = {4: {}, 5: {}, 6: {}}
+
+
+
+def fit():
+    """Fit ideal observer model for one game for one subject"""
+
+    # load necessary data
+    try:
+        s = Subject(subj)
+        X = s.samples(game=game)
+        board = s.gameboard(game=game) 
+    except:
+        print "failed to read data for subj %s game %s" % (subj, game)
+        return
+   
+    model = IdealObserver
+    id = [["subj", subj],
+          ["game", game]]
+
+    init = { #"hspace": hspace,
+             "subj": subj,
+             "game": game,
+             "board": board,
+             "obs": X,
+             "loadfromfile": True,
+             "samplingnorm": samplingnorm,
+           }
+
+    fixed = { "samplingnorm": samplingnorm, 
+            }
+
+    par = {"d": [0., 10.]}
+
+    name = MODEL_ID
+    s = Sim(logfile=logfile, 
+              rootdir=outputdir, 
+              name=name, 
+              model=model, 
+              id=id, 
+              init=init, 
+              fixed=fixed, 
+              par=par,
+              nruns = 1,
+              quiet = False
+              )
+
+    s()
+
+
 
 
 for theta in [5, 4, 6]:

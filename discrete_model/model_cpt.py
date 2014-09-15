@@ -3,7 +3,7 @@ from scipy import linalg
 from numpy.linalg import matrix_power
 from copy import deepcopy
 from fitting import *
-
+from cpt import util, pweight_prelec
 
 def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     """
@@ -41,38 +41,12 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
     try:
         assert np.isnan(cov)==False and pooledvar > 0
     except:
-        print 'problem with variance in drift rate!'
+        pass
+        #print 'problem with variance in drift rate!'
 
-    return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
+    #return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
 
-
-
-def util(outcome, pow_gain, pow_loss, w_loss):
-    if outcome >= 0.:
-        return (outcome ** pow_gain)
-    else:
-        return (-w_loss * ((-outcome) ** pow_loss))
-
-
-def value(option, pow_gain, pow_loss, w_loss, w_p):
-
-    v = 0.
-    for outcome, prob in option:
-        p_weighted = pweight(prob, w_p)
-
-        if outcome >= 0:
-            v += p_weighted * (outcome ** pow_gain)
-        else:
-            v += p_weighted * (-w_loss * ((-outcome) ** pow_loss))
-    return v
-
-
-def pweight_prelec(p, prelec_elevation, prelec_gamma):
-    return np.exp(-prelec_elevation * ((-np.log(p)) ** prelec_gamma))
-
-
-def pweight(p, w):
-    return pfix((p ** w) / ((p ** w + (1 - p) ** w) ** (1 / w)))
+    return delta * (seu[1] - seu[0]) / 1.
 
 
 def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
@@ -158,47 +132,6 @@ def loglik(value, args):
         return llh
 
 
-def loglik_factor(value, args):
-
-
-    verbose = args.get('verbose', False)
-    pars = deepcopy(args)
-    fitting = pars['fitting']
-    if verbose: print 'evaluating:'
-    for i, k in enumerate(fitting):
-        pars[k] = value[i]
-        if verbose: print '  %s=%s' % (k, pars[k])
-
-
-    if 'z_temp' in pars and pars['z_temp'] <= 0.:
-        return np.inf
-    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
-        return np.inf
-    elif pars['theta(0)'] < 1. or pars['theta(1)'] < 1.:
-        return np.inf
-    elif pars['delta']<-1. or pars['delta']>1.:
-        return np.inf
-    else:
-
-        pars_0 = deepcopy(pars)
-        pars_0.update({'theta': pars_0['theta(0)']})
-        pars_1 = deepcopy(pars)
-        pars_1.update({'theta': pars_1['theta(1)']})
-
-        result = [run(pars_0), run(pars_1)]
-
-        data = pars['data']
-
-        llh = 0.
-        for obs in data:
-            choice, t, grp = obs
-            llh += -1 * (np.log(pfix(result[grp]['p_stop_t'][t, choice])) + np.log(pfix(result[grp]['resp_prob'][choice])))
-
-        if verbose: print '  llh: %s' % llh
-        return llh
-
-
-
 def loglik_across_gambles(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
@@ -253,6 +186,15 @@ def loglik_across_gambles_by_group(value, args):
         if 'delta(0)' in pars:
             gpars_0.update({'delta': gpars_0['delta(0)']})
             gpars_1.update({'delta': gpars_1['delta(1)']})
+
+        if 'z_temp(0)' in pars:
+            gpars_0.update({'z_temp': gpars_0['z_temp(0)']})
+            gpars_1.update({'z_temp': gpars_1['z_temp(1)']})
+
+        if 'prelec_elevation(0)' in pars:
+            gpars_0.update({'prelec_elevation': gpars_0['prelec_elevation(0)']})
+            gpars_1.update({'prelec_elevation': gpars_1['prelec_elevation(1)']})
+
 
         result = [run(gpars_0), run(gpars_1)]
 
