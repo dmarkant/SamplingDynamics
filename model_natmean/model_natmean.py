@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 from cogmod.cpt import util
 from mypy.explib.hau2008 import hau2008
@@ -6,7 +7,11 @@ from fitting import *
 
 
 
-def evaluation(obs, eval_crit, eval_pow):
+def valuation(obs, eval_crit, eval_pow):
+    """
+    Valuation rule assuming zero value for non-sampled
+    option.
+    """
     uA = util(obs[1], eval_pow) if obs[0]==0 else 0.
     uB = util(obs[1], eval_pow) if obs[0]==1 else 0.
     return uA - eval_crit - uB
@@ -15,7 +20,7 @@ def evaluation(obs, eval_crit, eval_pow):
 def run(pars):
 
     verbose = pars.get('verbose', False)
-    options = pars.get('options')
+    options = pars.get('options', None)
     data    = pars.get('data')
 
     rho       = pars.get('rho', .5)
@@ -30,7 +35,7 @@ def run(pars):
     for trial, obs in enumerate(data['sampledata']):
 
         # evaluate the outcome
-        samples.append(evaluation(obs, eval_crit, eval_pow))
+        samples.append(valuation(obs, eval_crit, eval_pow))
 
     pref = np.cumsum(samples)[1:]
 
@@ -44,7 +49,9 @@ def run(pars):
     p_stop_t = np.array([1. * (pref > theta),
                          1. * (pref < -theta)])
 
-    return {'p_resp': p_resp,
+    return {'samples': samples,
+            'pref': pref,
+            'p_resp': p_resp,
             'p_switch_t': p_switch_t,
             'p_stop_t': p_stop_t}
 
@@ -87,6 +94,51 @@ def loglik(value, args):
         # if stopped, which choice?
         if stopped:
             llh += np.log(pfix(result['p_resp'][data['choice']]))
+
+    return -llh
+
+
+def loglik_across_gambles(value, args):
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
+
+    alldata = pars['data']
+
+    llh = 0.
+    for data in alldata:
+        _pars = deepcopy(pars)
+        _pars['data'] = data
+
+        result = run(_pars)
+
+        sampledata = data['sampledata']
+        for trial, obs in enumerate(sampledata):
+
+            if trial==0 or obs[0]==sampledata[trial-1][0]:
+                switched = 0.
+            else:
+                switched = 1.
+
+            if (trial+1)==len(sampledata):
+                stopped = 1.
+            else:
+                stopped = 0.
+
+            # switched?
+            if switched:
+                llh += np.log(pfix(result['p_switch_t'][trial]))
+            else:
+                llh += np.log(pfix(1 - result['p_switch_t'][trial]))
+
+            # continue or stop?
+            if stopped:
+                llh += np.log(pfix(np.sum(result['p_stop_t'], 0)[trial]))
+            else:
+                llh += np.log(pfix(1 - np.sum(result['p_stop_t'], 0)[trial]))
+
+            # if stopped, which choice?
+            if stopped:
+                llh += np.log(pfix(result['p_resp'][data['choice']]))
 
     return -llh
 
