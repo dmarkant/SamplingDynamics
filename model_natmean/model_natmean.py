@@ -5,8 +5,6 @@ from mypy.explib.hau2008 import hau2008
 from fitting import *
 
 
-
-
 def valuation(obs, eval_crit, eval_pow):
     """
     Valuation rule assuming zero value for non-sampled
@@ -23,8 +21,8 @@ def run(pars):
     options = pars.get('options', None)
     data    = pars.get('data')
 
-    rho       = pars.get('rho', .5)
-    eval_crit = pars.get('eval_crit', 0)
+    rho       = pars.get('rho', .5) # probability of switching
+    eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', 1.)
     z         = pars.get('z', 0.)
     theta     = pars.get('theta')
