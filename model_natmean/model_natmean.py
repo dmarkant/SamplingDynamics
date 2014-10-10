@@ -21,7 +21,7 @@ def run(pars):
     options = pars.get('options', None)
     data    = pars.get('data')
 
-    rho       = pars.get('rho', .5) # probability of switching
+    #rho       = pars.get('rho', .5) # probability of switching
     eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', 1.)
     z         = pars.get('z', 0.)
@@ -39,18 +39,18 @@ def run(pars):
 
     p_resp = [1., 0.] if pref[-1] > 0 else [0., 1.]
 
-    p_switch_t = rho * np.ones(len(data['sampledata']), float)
-    p_switch_t[0] = 0. # the first observation will never be a switch
+    # getting rid of switching, since this model doesn't really
+    # say anything about it
+    #p_switch_t = rho * np.ones(len(data['sampledata']), float)
+    #p_switch_t[0] = 0. # the first observation will never be a switch
 
     # vector indicating whether preference state
     # has crossed the threshold defined by theta
     p_stop_t = np.array([1. * (pref > theta),
                          1. * (pref < -theta)])
 
-    return {'samples': samples,
-            'pref': pref,
+    return {'pref': pref,
             'p_resp': p_resp,
-            'p_switch_t': p_switch_t,
             'p_stop_t': p_stop_t}
 
 
@@ -67,10 +67,10 @@ def loglik(value, args):
     llh = 0.
     for trial, obs in enumerate(sampledata):
 
-        if trial==0 or obs[0]==sampledata[trial-1][0]:
-            switched = 0.
-        else:
-            switched = 1.
+        #if trial==0 or obs[0]==sampledata[trial-1][0]:
+        #    switched = 0.
+        #else:
+        #    switched = 1.
 
         if (trial+1)==len(sampledata):
             stopped = 1.
@@ -78,10 +78,10 @@ def loglik(value, args):
             stopped = 0.
 
         # switched?
-        if switched:
-            llh += np.log(pfix(result['p_switch_t'][trial]))
-        else:
-            llh += np.log(pfix(1 - result['p_switch_t'][trial]))
+        #if switched:
+        #    llh += np.log(pfix(result['p_switch_t'][trial]))
+        #else:
+        #    llh += np.log(pfix(1 - result['p_switch_t'][trial]))
 
         # continue or stop?
         if stopped:
@@ -112,10 +112,10 @@ def loglik_across_gambles(value, args):
         sampledata = data['sampledata']
         for trial, obs in enumerate(sampledata):
 
-            if trial==0 or obs[0]==sampledata[trial-1][0]:
-                switched = 0.
-            else:
-                switched = 1.
+            #if trial==0 or obs[0]==sampledata[trial-1][0]:
+            #    switched = 0.
+            #else:
+            #    switched = 1.
 
             if (trial+1)==len(sampledata):
                 stopped = 1.
@@ -123,10 +123,10 @@ def loglik_across_gambles(value, args):
                 stopped = 0.
 
             # switched?
-            if switched:
-                llh += np.log(pfix(result['p_switch_t'][trial]))
-            else:
-                llh += np.log(pfix(1 - result['p_switch_t'][trial]))
+            #if switched:
+            #    llh += np.log(pfix(result['p_switch_t'][trial]))
+            #else:
+            #    llh += np.log(pfix(1 - result['p_switch_t'][trial]))
 
             # continue or stop?
             if stopped:
