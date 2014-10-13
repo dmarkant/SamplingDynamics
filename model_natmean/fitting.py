@@ -2,13 +2,12 @@ import numpy as np
 from copy import deepcopy
 
 
-BOUNDS = {'theta': [0, np.inf],
-          'z_temp': [0, np.inf],
-          'prelec_elevation': [0, np.inf],
-          'prelec_gamma': [0, np.inf],
-          'pow_gain': [0, np.inf],
-          'pow_loss': [0, np.inf],
-          's': [0, np.inf]} # temp for cpt softmax
+BOUNDS = {'eval_crit': [-np.inf, np.inf],
+          'eval_pow': [0, np.inf],
+          'z_mu': [-np.inf, np.inf],
+          'z_sd': [0, np.inf],
+          'theta': [-np.inf, np.inf],
+          'rho': [0., 1.]}
 
 
 def get_bounds(parname):
@@ -24,13 +23,17 @@ def pfix(p):
 
 def randstart(parname):
     if parname is 'theta':
-        return np.random.randint(4, 7)
-    elif parname is 'delta':
-        return 1.
-    elif parname is 'prelec_elevation':
-        return 1.
-    elif parname is 'prelec_gamma':
-        return 1.
+        return np.random.randint(0, 20)
+    elif parname is 'eval_crit':
+        return np.random.randint(-20, 20)
+    elif parname is 'eval_pow':
+        return np.random.random()
+    elif parname is 'z_mu':
+        return 0.
+    elif parname is 'z_sd':
+        return np.random.random() * 10.
+    elif parname is 'rho':
+        return np.random.random()
     else:
         return np.random.random()
 

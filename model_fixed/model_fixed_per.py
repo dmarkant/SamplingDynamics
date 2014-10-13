@@ -4,8 +4,6 @@ from scipy.optimize import minimize
 from fitting import *
 
 
-
-
 def pr_sample(n, t, s):
     """
     Probability of taking another sample from the
@@ -29,29 +27,44 @@ def run(pars):
     s = pars.get('s', 1.)               # continue scale factor
 
     counts = [0, 0] # assuming 2 options
-    p_sample = []
+    p_sample_A = []
+    p_sample_B = []
+    p_stop = []
 
     for trial, option in enumerate(data):
 
-        # did a switch occur?
-        if trial==0 or option==data[trial-1]:
-            switch = False
+        # on the first trial, sample randomly
+        if trial==0:
+            p_sample_A.append(0.5)
+            p_sample_B.append(0.5)
+            p_stop.append(0.)
         else:
-            switch = True
+            pr_A = pr_sample(counts[0], t, s)
+            pr_B = pr_sample(counts[1], t, s)
 
-        if not switch:
-            p = pr_sample(counts[option], t, s)
-        else:
-            p = (1 - pr_sample(counts[data[trial-1]], t, s)) * pr_sample(counts[option], t, s)
-        p_sample.append(p)
+            if data[trial-1] == 0:
+                # previous one was A
+                p_sample_A.append(pr_A)
+                p_sample_B.append((1 - pr_A) * pr_B)
+            else:
+                # previous one was B
+                p_sample_B.append(pr_B)
+                p_sample_A.append((1 - pr_B) * pr_A)
+
+            p_stop.append((1 - pr_A) * (1 - pr_B))
 
         counts[option] += 1
 
-    # get stopping probability
-    p_stop = (1 - pr_sample(counts[0], t, s)) * (1 - pr_sample(counts[1], t, s))
+    # final stopping decision
+    pr_A = pr_sample(counts[0], t, s)
+    pr_B = pr_sample(counts[1], t, s)
+    p_stop.append((1 - pr_A) * (1 - pr_B))
 
-    return {'p_sample': p_sample,
-            'p_stop': p_stop}
+    # print np.array(p_sample_A) + np.array(p_sample_B) + np.array(p_stop)
+
+    return {'p_stop': p_stop,
+            'p_sample_A': p_sample_A,
+            'p_sample_B': p_sample_B}
 
 
 def nloglik(value, args):
@@ -59,7 +72,18 @@ def nloglik(value, args):
     if outside_bounds(pars): return np.inf
 
     result = run(pars)
-    nllh = -1 * (np.sum(np.log(result['p_sample'])) + np.log(result['p_stop']))
+
+    llh = 0.
+    for trial, option in enumerate(pars['data']['sampledata']):
+        if option == 0:
+            llh += np.log(pfix(result['p_sample_A'][trial]))
+        else:
+            llh += np.log(pfix(result['p_sample_B'][trial]))
+
+
+    llh += np.log(pfix(result['p_stop'][-1]))
+
+    nllh = -1 * llh
     return nllh
 
 
@@ -74,7 +98,18 @@ def nloglik_across_gambles(value, args):
         _pars = deepcopy(pars)
         _pars['data'] = data
         result = run(_pars)
-        nllh.append(-1 * (np.sum(np.log(result['p_sample'])) + np.log(result['p_stop'])))
+
+        llh = 0.
+        for trial, option in enumerate(_pars['data']['sampledata']):
+            if option == 0:
+                llh += np.log(pfix(result['p_sample_A'][trial]))
+            else:
+                llh += np.log(pfix(result['p_sample_B'][trial]))
+
+        # stop decision
+        llh += np.log(pfix(result['p_stop'][-1]))
+
+        nllh.append(-1 * llh)
 
     return np.sum(nllh)
 
@@ -82,7 +117,7 @@ def nloglik_across_gambles(value, args):
 def fit_subject_across_gambles(data):
 
     def bic(f, pars):
-        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size for d in pars['data']]))
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
 
     for d in data:
         print d['sampledata']
@@ -98,6 +133,7 @@ def fit_subject_across_gambles(data):
     fitresults = {}
     nllh = []
     for targ in range(max_count * 2):
+        #print '(grid) target size: %i' % targ
         pars = {'data': data,
                 'target': targ,
                 'fitting': ['s']}
@@ -126,19 +162,22 @@ if __name__ == '__main__':
 
     df_samples, df_choices = hau2008.load_study(1)
 
-    subj = 8
+    subj = 1
     sdata = df_samples[(df_samples['subject']==subj) & (df_samples['problem']==1)]
     sampledata = sdata['option'].values
+    choice = df_choices[(df_choices['subject']==subj) & (df_choices['problem']==1)]['choice'].values[0]
 
     # run model for a single gamble
-    pars = {'data': {'sampledata': sampledata},
+    pars = {'data': {'sampledata': sampledata,
+                     'choice': choice},
             'target': 5,
             's': 1.}
 
     print run(pars)
 
     # get likelihood for a single gamble
-    pars = {'data': {'sampledata': sampledata},
+    pars = {'data': {'sampledata': sampledata,
+                     'choice': choice},
             's': 1.,
             'fitting': ['target']}
     print nloglik([10.], pars)
@@ -149,7 +188,8 @@ if __name__ == '__main__':
     problems = np.sort(sdata['problem'].unique())
     data = []
     for problem in problems:
-        data.append({'sampledata': sdata[sdata['problem']==problem]['option'].values})
+        data.append({'sampledata': sdata[sdata['problem']==problem]['option'].values,
+                     'choice': df_choices[(df_choices['subject']==subj) & (df_choices['problem']==problem)]['choice'].values[0]})
 
     print fit_subject_across_gambles(data)
     """

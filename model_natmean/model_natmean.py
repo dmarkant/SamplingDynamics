@@ -1,5 +1,7 @@
 from copy import deepcopy
 import numpy as np
+from scipy.optimize import minimize
+from scipy.stats import norm
 from cogmod.cpt import util
 from mypy.explib.hau2008 import hau2008
 from fitting import *
@@ -21,84 +23,101 @@ def run(pars):
     options = pars.get('options', None)
     data    = pars.get('data')
 
-    #rho       = pars.get('rho', .5) # probability of switching
+    rho       = pars.get('rho', .5) # probability of switching
     eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', 1.)
-    z         = pars.get('z', 0.)
+    z_mu      = pars.get('z_mu', 0.)
+    z_sd      = pars.get('z_sd', 10.)
     theta     = pars.get('theta')
 
-    # add distribution over starting positions
-
-    samples = [z]
+    # first evalute the trajectory
+    samples = [0.]
     for trial, obs in enumerate(data['sampledata']):
 
         # evaluate the outcome
-        samples.append(valuation(obs, eval_crit, eval_pow))
+        samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
 
     pref = np.cumsum(samples)[1:]
 
-    p_resp = [1., 0.] if pref[-1] > 0 else [0., 1.]
+    # on each trial, the probability of being in a state is given by
+    # normal distribution, centered on the current preference state
+    pref_mu = pref + z_mu
+    p_stop_choose_A = np.array([norm.cdf(-theta, loc=p, scale=z_sd) for p in pref_mu])
+    p_stop_choose_B = np.array([1. - norm.cdf(theta, loc=p, scale=z_sd) for p in pref_mu])
+    p_stop = p_stop_choose_A + p_stop_choose_B
 
-    # getting rid of switching, since this model doesn't really
-    # say anything about it
-    #p_switch_t = rho * np.ones(len(data['sampledata']), float)
-    #p_switch_t[0] = 0. # the first observation will never be a switch
+    # sampling probabilities, incorporating fixed probability of switching
+    p_sample_A = []
+    p_sample_B = []
+    for trial, obs in enumerate(data['sampledata']):
+        p_samp = 1 - p_stop[trial]
+        if trial == 0:
+            p_sample_A.append(p_samp * .5)
+            p_sample_B.append(p_samp * .5)
+        else:
+            if data['sampledata'][trial-1] == 0:
+                # last trial was A
+                p_sample_A.append(p_samp * (1 - rho))
+                p_sample_B.append(p_samp * rho)
+            else:
+                # last trial was B
+                p_sample_A.append(p_samp * rho)
+                p_sample_B.append(p_samp * (1 - rho))
 
-    # vector indicating whether preference state
-    # has crossed the threshold defined by theta
-    p_stop_t = np.array([1. * (pref > theta),
-                         1. * (pref < -theta)])
 
     return {'pref': pref,
-            'p_resp': p_resp,
-            'p_stop_t': p_stop_t}
-
+            'p_stop_choose_A': p_stop_choose_A,
+            'p_stop_choose_B': p_stop_choose_B,
+            'p_sample_A': p_sample_A,
+            'p_sample_B': p_sample_B}
 
 
 def loglik(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
-    data = pars['data']
-
     result = run(pars)
 
-    sampledata = data['sampledata']
+    # check if fitting sampling and choices
+    if 'ignorechoices' in pars:
+        ignorechoices = pars['ignorechoices']
+    else:
+        ignorechoices = False
+
+
+    sampledata = pars['data']['sampledata']
     llh = 0.
     for trial, obs in enumerate(sampledata):
 
-        #if trial==0 or obs[0]==sampledata[trial-1][0]:
-        #    switched = 0.
-        #else:
-        #    switched = 1.
-
-        if (trial+1)==len(sampledata):
-            stopped = 1.
+        if obs[0] == 0:
+            llh += np.log(pfix(result['p_sample_A'][trial]))
         else:
-            stopped = 0.
+            llh += np.log(pfix(result['p_sample_B'][trial]))
 
-        # switched?
-        #if switched:
-        #    llh += np.log(pfix(result['p_switch_t'][trial]))
-        #else:
-        #    llh += np.log(pfix(1 - result['p_switch_t'][trial]))
 
-        # continue or stop?
-        if stopped:
-            llh += np.log(pfix(np.sum(result['p_stop_t'], 0)[trial]))
+    if ignorechoices:
+        p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+        llh += np.log(pfix(p_stop))
+    else:
+        # stop/choice
+        if data['choice'] == 0:
+            llh += np.log(pfix(result['p_stop_choose_A'][-1]))
         else:
-            llh += np.log(pfix(1 - np.sum(result['p_stop_t'], 0)[trial]))
-
-        # if stopped, which choice?
-        if stopped:
-            llh += np.log(pfix(result['p_resp'][data['choice']]))
+            llh += np.log(pfix(result['p_stop_choose_B'][-1]))
 
     return -llh
 
 
-def loglik_across_gambles(value, args):
+def nloglik_across_gambles(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
+
+    # check if fitting sampling and choices
+    if 'ignorechoices' in pars:
+        ignorechoices = pars['ignorechoices']
+    else:
+        ignorechoices = False
+
 
     alldata = pars['data']
 
@@ -112,33 +131,45 @@ def loglik_across_gambles(value, args):
         sampledata = data['sampledata']
         for trial, obs in enumerate(sampledata):
 
-            #if trial==0 or obs[0]==sampledata[trial-1][0]:
-            #    switched = 0.
-            #else:
-            #    switched = 1.
-
-            if (trial+1)==len(sampledata):
-                stopped = 1.
+            if obs == 0:
+                llh += np.log(pfix(result['p_sample_A'][trial]))
             else:
-                stopped = 0.
+                llh += np.log(pfix(result['p_sample_B'][trial]))
 
-            # switched?
-            #if switched:
-            #    llh += np.log(pfix(result['p_switch_t'][trial]))
-            #else:
-            #    llh += np.log(pfix(1 - result['p_switch_t'][trial]))
-
-            # continue or stop?
-            if stopped:
-                llh += np.log(pfix(np.sum(result['p_stop_t'], 0)[trial]))
+        if ignorechoices:
+            p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+            llh += np.log(pfix(p_stop))
+        else:
+            # stop/choice
+            if data['choice'] == 0:
+                llh += np.log(pfix(result['p_stop_choose_A'][-1]))
             else:
-                llh += np.log(pfix(1 - np.sum(result['p_stop_t'], 0)[trial]))
-
-            # if stopped, which choice?
-            if stopped:
-                llh += np.log(pfix(result['p_resp'][data['choice']]))
+                llh += np.log(pfix(result['p_stop_choose_B'][-1]))
 
     return -llh
+
+
+def fit_subject_across_gambles(data, fixed={}, fitting=[]):
+
+    pars = {'data': data,
+            'fitting': fitting}
+    for parname in fixed:
+        pars[parname] = fixed[parname]
+
+    def bic(f, pars):
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
+
+    init = [randstart(par) for par in pars['fitting']]
+    f = minimize(nloglik_across_gambles, init, (pars,), method='Nelder-Mead')
+
+    return {'bf_par': {fitting[i]: f['x'][i] for i in range(len(fitting))},
+            'nllh': f['fun'],
+            'bic': bic(f, pars),
+            'success': f['success']}
+
+
+
+
 
 
 
@@ -151,7 +182,6 @@ if __name__ == '__main__':
 
     sdata = df_samples[(df_samples['subject']==1) & (df_samples['problem']==1)]
     sampledata = sdata[['option', 'outcome']].values
-
 
     choicedata = df_choices[(df_choices['subject']==1) & (df_choices['problem']==1)]
     choice = choicedata['choice'].values[0]
