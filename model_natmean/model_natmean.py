@@ -14,6 +14,12 @@ def valuation(obs, eval_crit, eval_pow):
     """
     uA = util(obs[1], eval_pow) if obs[0]==0 else 0.
     uB = util(obs[1], eval_pow) if obs[0]==1 else 0.
+
+    #print 'option:', obs[0]
+    #print 'outcome:', obs[1]
+    #print 'uA:', uA
+    #print 'uB:', uB
+    #print 'v:', uA - eval_crit - uB
     return uA - eval_crit - uB
 
 
@@ -33,17 +39,20 @@ def run(pars):
     # first evalute the trajectory
     samples = [0.]
     for trial, obs in enumerate(data['sampledata']):
+        print 'trial %s' % trial
+        print obs, data['outcomes'][trial], valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow)
 
         # evaluate the outcome
         samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
+
 
     pref = np.cumsum(samples)
 
     # on each trial, the probability of being in a state is given by
     # normal distribution, centered on the current preference state
     pref_mu = pref + z_mu
-    p_stop_choose_A = np.array([norm.cdf(-theta, loc=p, scale=z_sd) for p in pref_mu])
-    p_stop_choose_B = np.array([1. - norm.cdf(theta, loc=p, scale=z_sd) for p in pref_mu])
+    p_stop_choose_A = np.array([1. - norm.cdf(theta, loc=p, scale=z_sd) for p in pref_mu])
+    p_stop_choose_B = np.array([norm.cdf(-theta, loc=p, scale=z_sd) for p in pref_mu])
     p_stop = p_stop_choose_A + p_stop_choose_B
 
     # sampling probabilities, incorporating fixed probability of switching
@@ -72,56 +81,56 @@ def run(pars):
             'p_sample_B': p_sample_B}
 
 
-def loglik(value, args):
+def nloglik(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
     result = run(pars)
 
-    # check if fitting sampling and choices
-    if 'ignorechoices' in pars:
-        ignorechoices = pars['ignorechoices']
-    else:
-        ignorechoices = False
-
-
     sampledata = pars['data']['sampledata']
-    llh = 0.
+
+    llh_sampling = 0.
     for trial, obs in enumerate(sampledata):
 
-        if obs[0] == 0:
-            llh += np.log(pfix(result['p_sample_A'][trial]))
+        if obs == 0:
+            llh_sampling += np.log(pfix(result['p_sample_A'][trial]))
         else:
-            llh += np.log(pfix(result['p_sample_B'][trial]))
+            llh_sampling += np.log(pfix(result['p_sample_B'][trial]))
+
+    p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+    llh_sampling += np.log(pfix(p_stop))
 
 
-    if ignorechoices:
-        p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
-        llh += np.log(pfix(p_stop))
+    # stop/choice
+    if pars['data']['choice'] == 0:
+        top = result['p_stop_choose_A'][-1]
     else:
-        # stop/choice
-        if data['choice'] == 0:
-            llh += np.log(pfix(result['p_stop_choose_A'][-1]))
-        else:
-            llh += np.log(pfix(result['p_stop_choose_B'][-1]))
+        top = result['p_stop_choose_B'][-1]
 
-    return -llh
+    bottom = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+    p_choice = top / bottom
+
+    #print 'top:', top
+    #print 'bottom:', bottom
+    #print 'p(choice):', top / bottom
+
+    llh_choice = np.log(pfix(p_choice))
+
+    if len(fitting) > 0:
+        return -1 * (llh_sampling + llh_choice)
+    else:
+        return {'llh_sampling': -llh_sampling,
+                'llh_choice': -llh_choice}
 
 
 def nloglik_across_gambles(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
-    # check if fitting sampling and choices
-    if 'ignorechoices' in pars:
-        ignorechoices = pars['ignorechoices']
-    else:
-        ignorechoices = False
-
-
     alldata = pars['data']
 
-    llh = 0.
+    llh_sampling = 0.
+    llh_choice = 0.
     for data in alldata:
         _pars = deepcopy(pars)
         _pars['data'] = data
@@ -132,21 +141,27 @@ def nloglik_across_gambles(value, args):
         for trial, obs in enumerate(sampledata):
 
             if obs == 0:
-                llh += np.log(pfix(result['p_sample_A'][trial]))
+                llh_sampling += np.log(pfix(result['p_sample_A'][trial]))
             else:
-                llh += np.log(pfix(result['p_sample_B'][trial]))
+                llh_sampling += np.log(pfix(result['p_sample_B'][trial]))
 
-        if ignorechoices:
-            p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
-            llh += np.log(pfix(p_stop))
+        p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+        llh_sampling += np.log(pfix(p_stop))
+
+        if _pars['data']['choice']==0:
+            top = result['p_stop_choose_A'][-1]
         else:
-            # stop/choice
-            if data['choice'] == 0:
-                llh += np.log(pfix(result['p_stop_choose_A'][-1]))
-            else:
-                llh += np.log(pfix(result['p_stop_choose_B'][-1]))
+            top = result['p_stop_choose_B'][-1]
+        bottom = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+        p_choice = top / bottom
+        llh_choice += np.log(pfix(p_choice))
 
-    return -llh
+
+    if len(fitting) > 0:
+        return -1 * (llh_sampling + llh_choice)
+    else:
+        return {'llh_sampling': -llh_sampling,
+                'llh_choice': -llh_choice}
 
 
 def fit_subject_across_gambles(data, fixed={}, fitting=[]):
@@ -176,7 +191,8 @@ if __name__ == '__main__':
     df_samples, df_choices = hau2008.load_study(1)
 
     sdata = df_samples[(df_samples['subject']==1) & (df_samples['problem']==1)]
-    sampledata = sdata[['option', 'outcome']].values
+    sampledata = sdata['option'].values
+    outcomes = sdata['outcome'].values
 
     choicedata = df_choices[(df_choices['subject']==1) & (df_choices['problem']==1)]
     choice = choicedata['choice'].values[0]
@@ -185,6 +201,7 @@ if __name__ == '__main__':
 
     pars = {'options': options,
             'data': {'sampledata': sampledata,
+                     'outcomes': outcomes,
                      'choice': choice},
             'eval_pow': 1.2,
             'theta': 20}
@@ -195,8 +212,23 @@ if __name__ == '__main__':
     # evaluate log-likelihood
     pars = {'options': options,
             'data': {'sampledata': sampledata,
+                     'outcomes': outcomes,
                      'choice': choice},
             'fitting': ['theta'],
             'eval_pow': 1.2}
 
-    print loglik([10.], pars)
+    print nloglik([10.], pars)
+
+
+    # evaluate log-likelihood again, but without free parameters, to get
+    # separate scores for sampling and choice
+    pars = {'options': options,
+            'data': {'sampledata': sampledata,
+                     'outcomes': outcomes,
+                     'choice': choice},
+            'fitting': [],
+            'theta': 5,
+            'eval_pow': 1.2}
+
+    print nloglik([10.], pars)
+

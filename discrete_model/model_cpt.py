@@ -209,7 +209,6 @@ def loglik_across_gambles_by_group(value, args):
     return np.sum(llh)
 
 
-
 def run(pars):
 
     verbose = pars.get('verbose', False)

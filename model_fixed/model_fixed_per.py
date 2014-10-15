@@ -119,8 +119,8 @@ def fit_subject_across_gambles(data):
     def bic(f, pars):
         return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
 
-    for d in data:
-        print d['sampledata']
+    #for d in data:
+    #    print d['sampledata']
 
     # find the highest number of samples for a single option
     counts = []
