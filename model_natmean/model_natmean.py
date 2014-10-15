@@ -37,7 +37,7 @@ def run(pars):
         # evaluate the outcome
         samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
 
-    pref = np.cumsum(samples)[1:]
+    pref = np.cumsum(samples)
 
     # on each trial, the probability of being in a state is given by
     # normal distribution, centered on the current preference state
@@ -166,11 +166,6 @@ def fit_subject_across_gambles(data, fixed={}, fitting=[]):
             'nllh': f['fun'],
             'bic': bic(f, pars),
             'success': f['success']}
-
-
-
-
-
 
 
 if __name__ == '__main__':
