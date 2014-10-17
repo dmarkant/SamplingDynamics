@@ -7,6 +7,18 @@ from mypy.explib.hau2008 import hau2008
 from fitting import *
 
 
+def p_stop_and_choose(x, theta, s):
+    """
+    Logistic function relating distance from threshold
+    to probability of stopping and choosing an option
+    """
+    if theta > 0:
+        d = theta - x
+    else:
+        d = x - theta
+    return 1. / (1. + np.exp(s * d))
+
+
 def valuation(obs, eval_crit, eval_pow):
     """
     Valuation rule assuming zero value for non-sampled
@@ -14,12 +26,6 @@ def valuation(obs, eval_crit, eval_pow):
     """
     uA = util(obs[1], eval_pow) if obs[0]==0 else 0.
     uB = util(obs[1], eval_pow) if obs[0]==1 else 0.
-
-    #print 'option:', obs[0]
-    #print 'outcome:', obs[1]
-    #print 'uA:', uA
-    #print 'uB:', uB
-    #print 'v:', uA - eval_crit - uB
     return uA - eval_crit - uB
 
 
@@ -35,26 +41,40 @@ def run(pars):
     z_mu      = pars.get('z_mu', 0.)
     z_sd      = pars.get('z_sd', 10.)
     theta     = pars.get('theta')
+    s         = pars.get('s', 1.)
+    p_err     = pars.get('p_err', 0.)
 
     # first evalute the trajectory
     samples = [0.]
     for trial, obs in enumerate(data['sampledata']):
-        print 'trial %s' % trial
-        print obs, data['outcomes'][trial], valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow)
 
         # evaluate the outcome
         samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
-
 
     pref = np.cumsum(samples)
 
     # on each trial, the probability of being in a state is given by
     # normal distribution, centered on the current preference state
     pref_mu = pref + z_mu
+
+    #p_stop_choose_A = [p_stop_choose(p, theta, s) for p in pref_mu]
+    #p_stop_choose_B = [p_stop_choose(p, -theta, s) for p in pref_mu]
+
     p_stop_choose_A = np.array([1. - norm.cdf(theta, loc=p, scale=z_sd) for p in pref_mu])
     p_stop_choose_B = np.array([norm.cdf(-theta, loc=p, scale=z_sd) for p in pref_mu])
     p_stop = p_stop_choose_A + p_stop_choose_B
 
+    print p_stop_choose_A
+
+    p_samp = 1 - p_stop
+    d = np.array(data['sampledata'][:-1])
+    p_sample_A_m = p_samp[1:-1] * ((1 - rho) * (d==0) + rho * (d==1))
+    p_sample_A_m = np.concatenate(([p_samp[0] * .5], p_sample_A_m))
+
+    p_sample_B_m = p_samp[1:-1] * ((1 - rho) * (d==1) + rho * (d==0))
+    p_sample_B_m = np.concatenate(([p_samp[0] * .5], p_sample_B_m))
+
+    """
     # sampling probabilities, incorporating fixed probability of switching
     p_sample_A = []
     p_sample_B = []
@@ -73,12 +93,15 @@ def run(pars):
                 p_sample_A.append(p_samp * rho)
                 p_sample_B.append(p_samp * (1 - rho))
 
+    print p_sample_A - p_sample_A_m
+    print p_sample_B - p_sample_B_m
+    """
 
     return {'pref': pref,
             'p_stop_choose_A': p_stop_choose_A,
             'p_stop_choose_B': p_stop_choose_B,
-            'p_sample_A': p_sample_A,
-            'p_sample_B': p_sample_B}
+            'p_sample_A': p_sample_A_m,
+            'p_sample_B': p_sample_B_m}
 
 
 def nloglik(value, args):

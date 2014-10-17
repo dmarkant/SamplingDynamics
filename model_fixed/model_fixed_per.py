@@ -132,8 +132,8 @@ def fit_subject_across_gambles(data):
     # grid search on target size, fit scaling
     fitresults = {}
     nllh = []
-    for targ in range(max_count * 2):
-        #print '(grid) target size: %i' % targ
+    targets = range(max_count * 2)
+    for targ in targets:
         pars = {'data': data,
                 'target': targ,
                 'fitting': ['s']}
@@ -141,6 +141,7 @@ def fit_subject_across_gambles(data):
         init = [randstart(par) for par in pars['fitting']]
         f = minimize(nloglik_across_gambles, init, (pars,), method='Nelder-Mead')
         nllh.append(f['fun'])
+        print '(grid) target size: %i, nllh: %s' % (targ, f['fun'])
         fitresults[targ] = f
 
     bf_targ =  np.argmin(nllh)

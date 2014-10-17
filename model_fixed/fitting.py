@@ -3,7 +3,10 @@ from copy import deepcopy
 
 
 BOUNDS = {'target': [0, np.inf],
-          's': [0, 10.]}
+          's': [0, 10.],
+          'rho': [0, 1],
+          't_streak': [0, np.inf],
+          's_streak': [0, 10]}
 
 
 def pfix(p):
@@ -21,6 +24,12 @@ def randstart(parname):
     if parname is 'target':
         return np.random.randint(1, 20)
     elif parname is 's':
+        return np.random.random()
+    elif parname is 'rho':
+        return np.random.random()
+    elif parname is 't_streak':
+        return np.random.randint(1, 10)
+    elif parname is 's_streak':
         return np.random.random()
 
 
