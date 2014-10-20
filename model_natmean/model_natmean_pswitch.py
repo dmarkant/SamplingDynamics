@@ -1,20 +1,12 @@
 from copy import deepcopy
 import numpy as np
 from scipy.optimize import minimize
-from scipy.stats import norm, gamma
+from scipy.stats import norm, gamma, lognorm
 from cogmod.cpt import util
 from mypy.explib.hau2008 import hau2008
 from fitting import *
+from model_natmean import get_state_trajectory
 
-
-def valuation(obs, eval_crit, eval_pow):
-    """
-    Valuation rule assuming zero value for non-sampled
-    option.
-    """
-    uA = util(obs[1], eval_pow) if obs[0]==0 else 0.
-    uB = util(obs[1], eval_pow) if obs[0]==1 else 0.
-    return uA - eval_crit - uB
 
 
 def run(pars):
@@ -23,47 +15,33 @@ def run(pars):
     options   = pars.get('options', None)
     data      = pars.get('data')
 
-    rho       = pars.get('rho', .5) # probability of switching
+    # probability of switching
+    rho       = pars.get('rho', .5)
+
+    # sequential natural mean
     eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', 1.)
-    z_mu      = pars.get('z_mu', 0.)
-    z_sd      = pars.get('z_sd', 10.)
+    alpha     = pars.get('alpha', 2.)
+    beta      = pars.get('beta', 1.)
 
-    theta     = pars.get('theta')
-    th_shape  = pars.get('th_shape', 2.)
-    th_scale  = pars.get('th_scale', 1.)
-    
+    # guessing probability
     p_guess   = pars.get('p_guess', 0.)
 
-    # first evalute the trajectory
-    samples = [0.]
-    for trial, obs in enumerate(data['sampledata']):
+    # get preference trajectory
+    obs = np.transpose((data['samples'], data['outcomes']))
+    pref = get_state_trajectory(data['options'],
+                                obs,
+                                eval_crit,
+                                eval_pow)['states']
 
-        # evaluate the outcome
-        samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
-    pref = np.cumsum(samples)
 
-    # on each trial, the probability of crossing the boundary is 
+    # on each trial, the probability of crossing the boundary is
     # determined by the distribution over separation sizes
-    p_stop = gamma.cdf(np.abs(pref), th_shape, scale=th_scale)
+    p_stop = gamma.cdf(np.abs(pref), alpha, scale=1./beta)
     p_stop[0] = 0.
 
-
-    # on each trial, the probability of being in a state is given by
-    # normal distribution, centered on the current preference state
-    #pref_mu = pref + z_mu
-
-    #p_stop_choose_A = [p_stop_choose(p, theta, s) for p in pref_mu]
-    #p_stop_choose_B = [p_stop_choose(p, -theta, s) for p in pref_mu]
-
-    #p_stop_choose_A = np.array([1. - norm.cdf(theta, loc=p, scale=z_sd) for p in pref_mu])
-    #p_stop_choose_B = np.array([norm.cdf(-theta, loc=p, scale=z_sd) for p in pref_mu])
-    #p_stop = p_stop_choose_A + p_stop_choose_B
-    #p_stop[0] = 0.
-
-
     p_samp = 1 - p_stop
-    d = np.array(data['sampledata'])
+    d = np.array(data['samples'])
     p_sample_A = p_samp[1:] * ((1 - rho) * (d==0) + rho * (d==1))
     p_sample_A = np.concatenate(([.5], p_sample_A))
 
@@ -71,11 +49,20 @@ def run(pars):
     p_sample_B = np.concatenate(([.5], p_sample_B))
 
     # at end of sampling, give choice probabilities
+    if pref[-1] == 0:
+        p_choice = [.5, .5]
+    elif pref[-1] > 0:
+        p_choice = [1 - (p_guess/2.), p_guess/2.]
+    else:
+        p_choice = [p_guess/2., 1 - p_guess/2.]
+
+    #print p_choice
 
     return {'pref': pref,
             'p_stop': p_stop,
             'p_sample_A': p_sample_A,
-            'p_sample_B': p_sample_B}
+            'p_sample_B': p_sample_B,
+            'p_choice': p_choice}
 
 
 def nloglik(value, args):
@@ -94,7 +81,7 @@ def nloglik(value, args):
         else:
             llh_sampling += np.log(pfix(result['p_sample_B'][trial]))
 
-    p_stop = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
+    p_stop = result['p_stop'][-1]
     llh_sampling += np.log(pfix(p_stop))
 
 
@@ -124,7 +111,7 @@ def nloglik_across_gambles(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
-    obj = pars['obj']
+    obj = pars.get('obj', None)
 
     alldata = pars['data']
 
@@ -136,7 +123,7 @@ def nloglik_across_gambles(value, args):
 
         result = run(_pars)
 
-        sampledata = data['sampledata']
+        sampledata = data['samples']
         for trial, obs in enumerate(sampledata):
 
             if obs == 0:
@@ -147,13 +134,12 @@ def nloglik_across_gambles(value, args):
         p_stop = result['p_stop'][-1]
         llh_sampling += np.log(pfix(p_stop))
 
-        #if _pars['data']['choice']==0:
-        #    top = result['p_stop_choose_A'][-1]
-        #else:
-        #    top = result['p_stop_choose_B'][-1]
-        #bottom = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
-        #p_choice = top / bottom
-        #llh_choice += np.log(pfix(p_choice))
+        choice = _pars['data']['choice']
+        p_choice = result['p_choice'][choice]
+
+        #print p_choice
+        llh_choice += np.log(pfix(p_choice))
+
 
     if obj is 'both':
         return -1 * (llh_sampling + llh_choice)
@@ -175,10 +161,16 @@ def fit_subject_across_gambles(data, fixed={}, fitting=[], obj='both'):
         pars[parname] = fixed[parname]
 
     def bic(f, pars):
-        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samples'].size + 1 for d in pars['data']]))
 
-    init = [randstart(par) for par in pars['fitting']]
-    f = minimize(nloglik_across_gambles, init, (pars,), method='Nelder-Mead')
+    succeeded = False
+    iter = 0
+    while not succeeded and iter < 5:
+        init = [randstart(par) for par in pars['fitting']]
+        f = minimize(nloglik_across_gambles, init, (pars,), method='Nelder-Mead')
+        if f['success']:
+            succeeded = True
+        iter += 1
 
     return {'bf_par': {fitting[i]: f['x'][i] for i in range(len(fitting))},
             'nllh': f['fun'],

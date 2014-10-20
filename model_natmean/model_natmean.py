@@ -1,22 +1,24 @@
+"""
+Common code for natural mean model, both the stand-alone
+choice model and the sequential version.
+
+
+"""
 from copy import deepcopy
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import norm
-from cogmod.cpt import util
 from mypy.explib.hau2008 import hau2008
 from fitting import *
 
 
-def p_stop_and_choose(x, theta, s):
-    """
-    Logistic function relating distance from threshold
-    to probability of stopping and choosing an option
-    """
-    if theta > 0:
-        d = theta - x
+def util(outcome, pow_gain, pow_loss=None, w_loss=1.):
+
+    if pow_loss is None: pow_loss = pow_gain
+    if outcome >= 0.:
+        return (outcome ** pow_gain)
     else:
-        d = x - theta
-    return 1. / (1. + np.exp(s * d))
+        return (-w_loss * ((-outcome) ** pow_loss))
 
 
 def valuation(obs, eval_crit, eval_pow):
@@ -27,6 +29,56 @@ def valuation(obs, eval_crit, eval_pow):
     uA = util(obs[1], eval_pow) if obs[0]==0 else 0.
     uB = util(obs[1], eval_pow) if obs[0]==1 else 0.
     return uA - eval_crit - uB
+
+
+
+
+
+
+"""
+Sequential natural mean.
+
+"""
+
+def get_state_trajectory(options, observations, eval_crit, eval_pow):
+
+    # calculate the pooled variance once
+    probs = []
+    utils = []
+    eu    = []
+    evar  = []
+    for opt_i, option in enumerate(options):
+        probs.append([prob for (outcome, prob) in option])
+        utils.append([util(outcome, eval_pow) for (outcome, prob) in option])
+        eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
+        evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
+
+    outs      = np.outer(utils[0] - eu[0], utils[1] - eu[1])
+    ps        = np.outer(probs[0], probs[1])
+    cov       = np.sum(np.multiply(outs, ps))
+    pooledvar = np.sum(evar) - 2 * cov
+
+    pooledvar = 1.
+
+    # assume unbiased starting position
+    V = [0.]
+    for obs in observations:
+        V.append(valuation(obs, eval_crit, eval_pow) / pooledvar)
+    states = np.cumsum(V)
+
+    return {'values': V,
+            'states': states}
+
+
+
+
+
+
+
+
+
+
+
 
 
 def run(pars):
@@ -74,28 +126,6 @@ def run(pars):
     p_sample_B_m = p_samp[1:-1] * ((1 - rho) * (d==1) + rho * (d==0))
     p_sample_B_m = np.concatenate(([p_samp[0] * .5], p_sample_B_m))
 
-    """
-    # sampling probabilities, incorporating fixed probability of switching
-    p_sample_A = []
-    p_sample_B = []
-    for trial, obs in enumerate(data['sampledata']):
-        p_samp = 1 - p_stop[trial]
-        if trial == 0:
-            p_sample_A.append(p_samp * .5)
-            p_sample_B.append(p_samp * .5)
-        else:
-            if data['sampledata'][trial-1] == 0:
-                # last trial was A
-                p_sample_A.append(p_samp * (1 - rho))
-                p_sample_B.append(p_samp * rho)
-            else:
-                # last trial was B
-                p_sample_A.append(p_samp * rho)
-                p_sample_B.append(p_samp * (1 - rho))
-
-    print p_sample_A - p_sample_A_m
-    print p_sample_B - p_sample_B_m
-    """
 
     return {'pref': pref,
             'p_stop_choose_A': p_stop_choose_A,
@@ -132,10 +162,6 @@ def nloglik(value, args):
 
     bottom = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
     p_choice = top / bottom
-
-    #print 'top:', top
-    #print 'bottom:', bottom
-    #print 'p(choice):', top / bottom
 
     llh_choice = np.log(pfix(p_choice))
 

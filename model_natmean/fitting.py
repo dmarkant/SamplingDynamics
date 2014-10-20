@@ -11,7 +11,10 @@ BOUNDS = {'eval_crit': [-np.inf, np.inf],
           'th_shape': [0, np.inf],
           'target_batch': [0, np.inf],
           's_batch': [0, 10],
-          'rho': [0., 1.]}
+          'rho': [0., 1.],
+          'alpha': [1, 1000],
+          'beta': [0, 1000],
+          'p_guess': [0, 1]}
 
 
 def get_bounds(parname):
@@ -43,6 +46,12 @@ def randstart(parname):
     elif parname is 'rho':
         return np.random.random()
     elif parname is 's_batch':
+        return np.random.random()
+    elif parname is 'alpha':
+        return 1+np.random.random()*10
+    elif parname is 'beta':
+        return np.random.random()*10
+    elif parname is 'p_guess':
         return np.random.random()
     else:
         return np.random.random()
