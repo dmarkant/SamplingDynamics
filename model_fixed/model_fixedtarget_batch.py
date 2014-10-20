@@ -3,6 +3,9 @@ from mypy.explib.hau2008 import hau2008
 from scipy.optimize import minimize
 from fitting import *
 
+import sys
+sys.path.append("../")
+from switching import count_streaks
 
 
 
@@ -31,19 +34,7 @@ def run(pars):
     s_batch = pars.get('s_batch', 1.)
 
     count = np.arange(len(data) + 1)
-
-    count_streak = [0]
-    for trial, option in enumerate(data):
-        if trial==0:
-            count_streak.append(1)
-        else:
-            if option == data[trial-1]:
-                count_streak.append(count_streak[-1] + 1)
-            else:
-                count_streak.append(1)
-
-
-    #print count_streak
+    count_streak = count_streaks(data)
 
     # probability of stopping is based on total count
     p_sample = 1. / (1. + np.exp((count + 1 - t) * s))
@@ -119,9 +110,6 @@ def fit_subject_across_gambles(data):
 
     def bic(f, pars):
         return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
-
-    #for d in data:
-    #    print d['sampledata']
 
     # find the highest number of samples for a game
     counts = []

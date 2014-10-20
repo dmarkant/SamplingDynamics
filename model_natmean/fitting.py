@@ -7,6 +7,10 @@ BOUNDS = {'eval_crit': [-np.inf, np.inf],
           'z_mu': [-np.inf, np.inf],
           'z_sd': [0, np.inf],
           'theta': [-np.inf, np.inf],
+          'th_scale': [0, np.inf],
+          'th_shape': [0, np.inf],
+          'target_batch': [0, np.inf],
+          's_batch': [0, 10],
           'rho': [0., 1.]}
 
 
@@ -24,6 +28,10 @@ def pfix(p):
 def randstart(parname):
     if parname is 'theta':
         return np.random.randint(0, 20)
+    elif parname is 'th_scale':
+        return np.random.random() * 2
+    elif parname is 'th_shape':
+        return np.random.random() * 10
     elif parname is 'eval_crit':
         return np.random.randint(-20, 20)
     elif parname is 'eval_pow':
@@ -33,6 +41,8 @@ def randstart(parname):
     elif parname is 'z_sd':
         return np.random.random() * 10.
     elif parname is 'rho':
+        return np.random.random()
+    elif parname is 's_batch':
         return np.random.random()
     else:
         return np.random.random()
