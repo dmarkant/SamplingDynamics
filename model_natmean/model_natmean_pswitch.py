@@ -21,8 +21,12 @@ def run(pars):
     # sequential natural mean
     eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', 1.)
-    alpha     = pars.get('alpha', 2.)
-    beta      = pars.get('beta', 1.)
+
+    mu        = pars.get('mu', 10)
+    sd        = pars.get('sd', 1)
+
+    #alpha     = pars.get('alpha', 2.)
+    #beta      = pars.get('beta', 1.)
 
     # guessing probability
     p_guess   = pars.get('p_guess', 0.)
@@ -34,10 +38,12 @@ def run(pars):
                                 eval_crit,
                                 eval_pow)['states']
 
+    # normal distribution
+    p_stop = norm.cdf(np.abs(pref), loc=mu, scale=sd) / (1. - norm.cdf(0, loc=mu, scale=sd))
 
     # on each trial, the probability of crossing the boundary is
     # determined by the distribution over separation sizes
-    p_stop = gamma.cdf(np.abs(pref), alpha, scale=1./beta)
+    #p_stop = gamma.cdf(np.abs(pref), alpha, scale=1./beta)
     p_stop[0] = 0.
 
     p_samp = 1 - p_stop

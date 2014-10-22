@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_game_with_model(pars, result):
-    fig, ax = plt.subplots(figsize=(10,5))
+def plot_game_with_model(pars, result, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10,5))
     for i in range(len(pars['data']['samples'])):
         opt = pars['data']['samples'][i]
         label = ['blue', 'red'][opt]
@@ -17,4 +18,26 @@ def plot_game_with_model(pars, result):
     ax.set_ylim(-.1, 1.4)
     ax.set_xlim(-1, len(pars['data']['samples']) + 1)
     ax.legend(loc='lower left')
-    plt.show()
+
+    if ax is None:
+        plt.show()
+    else:
+        return ax
+
+
+def plot_preference_state(pref, choice, theta, sd, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    ax.plot([0, len(pref)], [ theta,  theta], '-', color='blue')
+    ax.fill_between([0, len(pref)], theta-sd, theta+sd, facecolor='blue', alpha=.1)
+
+    ax.plot([0, len(pref)], [-theta, -theta], '-', color='red')
+    ax.fill_between([0, len(pref)], -theta-sd, -theta+sd, facecolor='red', alpha=.1)
+
+    ax.plot(pref, '-o', color='blue' if choice==0 else 'red')
+
+    if ax is None:
+        plt.show()
+    else:
+        return ax

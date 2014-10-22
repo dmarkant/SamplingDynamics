@@ -14,6 +14,8 @@ BOUNDS = {'eval_crit': [-np.inf, np.inf],
           'rho': [0., 1.],
           'alpha': [1, 1000],
           'beta': [0, 1000],
+          'mu': [0, np.inf],
+          'sd': [0, np.inf],
           'p_guess': [0, 1]}
 
 
@@ -51,6 +53,10 @@ def randstart(parname):
         return 1+np.random.random()*10
     elif parname is 'beta':
         return np.random.random()*10
+    elif parname is 'mu':
+        return np.random.randint(1, 20)
+    elif parname is 'sd':
+        return np.random.randint(1, 10)
     elif parname is 'p_guess':
         return np.random.random()
     else:
