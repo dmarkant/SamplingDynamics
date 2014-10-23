@@ -97,6 +97,112 @@ def transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, po
     return tm_pqr
 
 
+def run(pars):
+
+    verbose = pars.get('verbose', False)
+
+    options = pars.get('options')
+    pow_gain = pars.get('pow_gain', 1.)
+    pow_loss = pars.get('pow_loss', pow_gain) # if not provided, assume
+                                              # same as pow_gain
+    w_loss = pars.get('w_loss', 1.)
+    prelec_elevation = pars.get('prelec_elevation', 1.)
+    prelec_gamma = pars.get('prelec_gamma', 1.)
+
+    p_switch = pars.get('p_switch', 0.5)
+
+    delta = pars.get('delta', 1.)    # drift scaling factor
+
+    theta = np.float(np.round(pars.get('theta', 5)))     # boundaries
+
+    sigma = pars.get('sigma', 1.)    # diffusion parameter
+    gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
+    max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
+    dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
+    alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
+                                     # stay probability (must be > 1)
+
+    dv    = pars.get('dv', 1.)
+    tau   = (dv**2)/(sigma**2)       # with default settings, equal to 1.
+
+    # create state space
+    V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
+    vi = range(len(V))
+    m = len(V)
+
+
+    if 'Z' in pars:
+        # starting vector was provided
+        Z = np.matrix(pars.get('Z'))
+
+    elif 'z_width' in pars:
+        # use interval of uniform probability for starting position,
+        # with width set by z_width
+        z_w   = pars.get('z_width')
+        z_w = z_w / 2.
+        zhw = np.floor((m - 2) * z_w)
+        Z = np.zeros(m - 2)
+        Z[(len(Z)/2-zhw):(len(Z)/2+zhw+1)] = 1.
+        if verbose:
+            pass
+            #print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
+
+        Z = np.matrix(Z/float(sum(Z)))
+    elif 'z_temp' in pars:
+        # use softmax-transformed distance from unbiased point
+        z_temp   = pars.get('z_temp')
+        Z = np.exp(-np.abs(V[1:-1]) * (1/float(z_temp)))
+        Z = np.matrix(Z / np.sum(Z))
+        if verbose:
+            pass
+            #print 'z_temp:', z_temp
+    else:
+        # otherwise start with unbiased starting position
+        Z = np.zeros(m - 2)
+        Z[len(Z)/2] = 1.
+        Z = np.matrix(Z)
+
+    # transition matrix
+    tm_pqr = transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
+    Q = tm_pqr[2:,2:]
+    I = np.eye(m - 2)
+    R = np.matrix(tm_pqr[2:,:2])
+    IQ = np.matrix(linalg.inv(I - Q))
+
+    # time steps for evaluation
+    T = np.arange(1., max_T + 1, dt)
+    N = map(int, np.floor(T/tau))
+
+    states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
+
+    # 1. overall response probabilities
+    resp_prob = Z * (IQ * R)
+
+    # 2. response probability over time
+    resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 2))
+
+    # 3. cumulative response probability over time
+    #resp_prob_cump = resp_prob_t.cumsum(axis=0)
+
+    # 1. predicted stopping points, conditional on choice
+    p_tsteps = (Z * (IQ * IQ) * R) / resp_prob
+
+    # 2. probability of stopping over time
+    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/resp_prob for n in N]).reshape((len(N), 2))
+
+    # 3. cumulative probability of stopping over time
+    p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
+
+    return {'T': T,
+            'states_t': states_t,
+            'resp_prob': np.array(resp_prob)[0],
+            'resp_prob_t': resp_prob_t,
+            'p_tsteps': p_tsteps,
+            'p_stop_t': p_stop_cond,
+            'p_stop_t_cump': p_stop_cond_cump}
+
+
 def loglik(value, args):
 
     verbose = args.get('verbose', False)
@@ -209,108 +315,6 @@ def loglik_across_gambles_by_group(value, args):
     return np.sum(llh)
 
 
-def run(pars):
-
-    verbose = pars.get('verbose', False)
-
-    options = pars.get('options')
-    pow_gain = pars.get('pow_gain', 1.)
-    pow_loss = pars.get('pow_loss', pow_gain) # if not provided, assume
-                                              # same as pow_gain
-    w_loss = pars.get('w_loss', 1.)
-    prelec_elevation = pars.get('prelec_elevation', 1.)
-    prelec_gamma = pars.get('prelec_gamma', 1.)
-
-    delta = pars.get('delta', 1.)    # drift scaling factor
-
-    theta = np.float(np.round(pars.get('theta', 5)))     # boundaries
-
-    sigma = pars.get('sigma', 1.)    # diffusion parameter
-    gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
-    max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
-    dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
-    alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
-                                     # stay probability (must be > 1)
-
-    dv    = pars.get('dv', 1.)
-    tau   = (dv**2)/(sigma**2)       # with default settings, equal to 1.
-
-    # create state space
-    V = np.round(np.arange(-theta, theta+(dv/2.), dv), 4)
-    vi = range(len(V))
-    m = len(V)
-
-
-    if 'Z' in pars:
-        # starting vector was provided
-        Z = np.matrix(pars.get('Z'))
-
-    elif 'z_width' in pars:
-        # use interval of uniform probability for starting position,
-        # with width set by z_width
-        z_w   = pars.get('z_width')
-        z_w = z_w / 2.
-        zhw = np.floor((m - 2) * z_w)
-        Z = np.zeros(m - 2)
-        Z[(len(Z)/2-zhw):(len(Z)/2+zhw+1)] = 1.
-        if verbose:
-            pass
-            #print '  actual halfwidth of starting interval:', np.round(len(np.where(Z==1.)[0]) / float(len(Z)),2)
-
-        Z = np.matrix(Z/float(sum(Z)))
-    elif 'z_temp' in pars:
-        # use softmax-transformed distance from unbiased point
-        z_temp   = pars.get('z_temp')
-        Z = np.exp(-np.abs(V[1:-1]) * (1/float(z_temp)))
-        Z = np.matrix(Z / np.sum(Z))
-        if verbose:
-            pass
-            #print 'z_temp:', z_temp
-    else:
-        # otherwise start with unbiased starting position
-        Z = np.zeros(m - 2)
-        Z[len(Z)/2] = 1.
-        Z = np.matrix(Z)
-
-    # transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
-
-    Q = tm_pqr[2:,2:]
-    I = np.eye(m - 2)
-    R = np.matrix(tm_pqr[2:,:2])
-    IQ = np.matrix(linalg.inv(I - Q))
-
-    # time steps for evaluation
-    T = np.arange(1., max_T + 1, dt)
-    N = map(int, np.floor(T/tau))
-
-    states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
-
-    # 1. overall response probabilities
-    resp_prob = Z * (IQ * R)
-
-    # 2. response probability over time
-    resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 2))
-
-    # 3. cumulative response probability over time
-    #resp_prob_cump = resp_prob_t.cumsum(axis=0)
-
-    # 1. predicted stopping points, conditional on choice
-    p_tsteps = (Z * (IQ * IQ) * R) / resp_prob
-
-    # 2. probability of stopping over time
-    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/resp_prob for n in N]).reshape((len(N), 2))
-
-    # 3. cumulative probability of stopping over time
-    p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
-
-    return {'T': T,
-            'states_t': states_t,
-            'resp_prob': np.array(resp_prob)[0],
-            'resp_prob_t': resp_prob_t,
-            'p_tsteps': p_tsteps,
-            'p_stop_t': p_stop_cond,
-            'p_stop_t_cump': p_stop_cond_cump}
 
 
 if __name__ == '__main__':

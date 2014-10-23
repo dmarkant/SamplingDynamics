@@ -80,7 +80,6 @@ def outside_bounds(pars):
     if 'bounds' in pars:
         bounds = pars['bounds']
     else:
-
         bounds = [get_bounds(p) for p in pars['fitting']]
     for i, k in enumerate(pars['fitting']):
         if pars[k] < bounds[i][0] or pars[k] > bounds[i][1]:

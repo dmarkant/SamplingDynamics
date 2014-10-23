@@ -8,7 +8,6 @@ from fitting import *
 from model_natmean import get_state_trajectory
 
 
-
 def run(pars):
 
     verbose   = pars.get('verbose', False)
@@ -62,15 +61,13 @@ def run(pars):
     else:
         p_choice = [p_guess/2., 1 - p_guess/2.]
 
-    #print p_choice
-
     return {'pref': pref,
             'p_stop': p_stop,
             'p_sample_A': p_sample_A,
             'p_sample_B': p_sample_B,
             'p_choice': p_choice}
 
-
+"""
 def nloglik(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
@@ -111,6 +108,7 @@ def nloglik(value, args):
     else:
         return {'llh_sampling': -llh_sampling,
                 'llh_choice': -llh_choice}
+"""
 
 
 def nloglik_across_gambles(value, args):
@@ -142,9 +140,9 @@ def nloglik_across_gambles(value, args):
 
         choice = _pars['data']['choice']
         p_choice = result['p_choice'][choice]
-
-        #print p_choice
         llh_choice += np.log(pfix(p_choice))
+
+    print llh_sampling + llh_choice, value
 
 
     if obj is 'both':

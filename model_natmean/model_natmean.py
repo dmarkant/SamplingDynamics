@@ -32,14 +32,10 @@ def valuation(obs, eval_crit, eval_pow):
 
 
 
-
-
-
 """
 Sequential natural mean.
 
 """
-
 def get_state_trajectory(options, observations, eval_crit, eval_pow):
 
     # calculate the pooled variance once
@@ -63,22 +59,11 @@ def get_state_trajectory(options, observations, eval_crit, eval_pow):
     # assume unbiased starting position
     V = [0.]
     for obs in observations:
-        V.append(valuation(obs, eval_crit, eval_pow) / pooledvar)
+        V.append(valuation(obs, eval_crit, eval_pow) / np.sqrt(pooledvar))
     states = np.cumsum(V)
 
     return {'values': V,
             'states': states}
-
-
-
-
-
-
-
-
-
-
-
 
 
 def run(pars):

@@ -5,6 +5,7 @@ from scipy.stats import norm, gamma
 from cogmod.cpt import util
 from mypy.explib.hau2008 import hau2008
 from fitting import *
+from model_natmean import get_state_trajectory
 
 import sys
 sys.path.append("../")
@@ -30,38 +31,41 @@ def run(pars):
     eval_crit = pars.get('eval_crit', 0.)
     eval_pow  = pars.get('eval_pow', .01)
 
-    th_shape  = pars.get('th_shape', 2.)
-    th_scale  = pars.get('th_scale', 1.)
+    mu        = pars.get('mu', 10)
+    sd        = pars.get('sd', 1)
 
+    # batch sampling
     t_batch = np.round(pars.get('target_batch', 5)) # target total sample size
     s_batch = pars.get('s_batch', 1.)
 
+    # guessing probability
     p_guess   = pars.get('p_guess', 0.)
 
-    # first evalute the trajectory
-    samples = [0.]
-    for trial, obs in enumerate(data['sampledata']):
 
-        # evaluate the outcome
-        samples.append(valuation([obs, data['outcomes'][trial]], eval_crit, eval_pow))
-    pref = np.cumsum(samples)
+    # get preference trajectory
+    obs = np.transpose((data['samples'], data['outcomes']))
+    pref = get_state_trajectory(data['options'],
+                                obs,
+                                eval_crit,
+                                eval_pow)['states']
+
 
 
     # probability of switching is based on streak count
-    count_streak = count_streaks(data['sampledata'])
+    count_streak = count_streaks(data['samples'])
     p_stay = 1. / (1. + np.exp((np.array(count_streak) + 1 - t_batch) * s_batch))
 
-
-
-    # on each trial, the probability of crossing the boundary is 
-    # determined by the distribution over separation sizes
-    p_stop = gamma.cdf(np.abs(pref), 2., loc=th_shape, scale=th_scale)
+    # normal distribution
+    p_stop = norm.cdf(np.abs(pref), loc=mu, scale=sd) / (1. - norm.cdf(0, loc=mu, scale=sd))
     p_stop[0] = 0.
+
+    # on each trial, the probability of crossing the boundary is
+    # determined by the distribution over separation sizes
+    #p_stop = gamma.cdf(np.abs(pref), 2., loc=th_shape, scale=th_scale)
+    #p_stop[0] = 0.
     p_samp = 1 - p_stop
-    
 
-
-    d = np.array(data['sampledata'])
+    d = np.array(data['samples'])
 
     p_sample_A = p_stay[1:] * (d==0) + (1 - p_stay[1:]) * p_samp[1:] * (d==1)
     p_sample_A = np.concatenate(([.5], p_sample_A))
@@ -69,15 +73,23 @@ def run(pars):
     p_sample_B = p_stay[1:] * (d==1) + (1 - p_stay[1:]) * p_samp[1:] * (d==0)
     p_sample_B = np.concatenate(([.5], p_sample_B))
 
+    # conditional probability of stopping
     p_stop = 1 - (p_sample_A + p_sample_B)
 
-
     # at end of sampling, give choice probabilities
+    if pref[-1] == 0:
+        p_choice = [.5, .5]
+    elif pref[-1] > 0:
+        p_choice = [1 - (p_guess/2.), p_guess/2.]
+    else:
+        p_choice = [p_guess/2., 1 - p_guess/2.]
+
 
     return {'pref': pref,
             'p_stop': p_stop,
             'p_sample_A': p_sample_A,
-            'p_sample_B': p_sample_B}
+            'p_sample_B': p_sample_B,
+            'p_choice': p_choice}
 
 
 def nloglik(value, args):
@@ -86,7 +98,7 @@ def nloglik(value, args):
 
     result = run(pars)
 
-    sampledata = pars['data']['sampledata']
+    sampledata = pars['data']['samples']
 
     llh_sampling = 0.
     for trial, obs in enumerate(sampledata):
@@ -126,9 +138,7 @@ def nloglik_across_gambles(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
-
-    obj = pars['obj']
-
+    obj = pars.get('obj', None)
     alldata = pars['data']
 
     llh_sampling = 0.
@@ -139,7 +149,7 @@ def nloglik_across_gambles(value, args):
 
         result = run(_pars)
 
-        sampledata = data['sampledata']
+        sampledata = data['samples']
         for trial, obs in enumerate(sampledata):
 
             if obs == 0:
@@ -150,13 +160,9 @@ def nloglik_across_gambles(value, args):
         p_stop = result['p_stop'][-1]
         llh_sampling += np.log(pfix(p_stop))
 
-        #if _pars['data']['choice']==0:
-        #    top = result['p_stop_choose_A'][-1]
-        #else:
-        #    top = result['p_stop_choose_B'][-1]
-        #bottom = result['p_stop_choose_A'][-1] + result['p_stop_choose_B'][-1]
-        #p_choice = top / bottom
-        #llh_choice += np.log(pfix(p_choice))
+        choice = _pars['data']['choice']
+        p_choice = result['p_choice'][choice]
+        llh_choice += np.log(pfix(p_choice))
 
     #print '\t%s: %s' % (map(lambda v: np.round(v, 3), value), llh_sampling)
 
@@ -173,19 +179,12 @@ def nloglik_across_gambles(value, args):
 
 def fit_subject_across_gambles(data, fixed={}, fitting=[], obj='both'):
 
-    #pars = {'data': data,
-    #        'obj': obj,
-    #        'fitting': fitting}
-    #for parname in fixed:
-    #    pars[parname] = fixed[parname]
-
     def bic(f, pars):
-        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
-
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samples'].size + 1 for d in pars['data']]))
 
     counts = []
     for d in data:
-        counts.append(len(d['sampledata']))
+        counts.append(len(d['samples']))
     max_count = np.max(counts)
     print max_count
 
@@ -193,7 +192,6 @@ def fit_subject_across_gambles(data, fixed={}, fitting=[], obj='both'):
     fitresults = {}
     nllh = []
     for target_batch in range(max_count):
-    #for target_batch in [12]:
         pars = {'data': data,
                 'obj': obj,
                 'target_batch': target_batch,
@@ -202,20 +200,20 @@ def fit_subject_across_gambles(data, fixed={}, fitting=[], obj='both'):
         fitresults_tb = {}
         for iter in range(5):
             init = [randstart(par) for par in pars['fitting']]
-            f = minimize(nloglik_across_gambles, init, (pars,), method='Nelder-Mead')
+            f = minimize(nloglik_across_gambles, init, (pars,), method='Powell', tol=.00001)
             if f['success'] is True:
                 nllh_tb.append(f['fun'])
                 fitresults_tb[iter] = f
-                print 'success', nllh_tb[-1]
+                print 'success', nllh_tb[-1], np.round(f['x'], 2)
             else:
-                print 'failed' 
+                print 'failed'
                 nllh_tb.append(np.inf)
 
         best_iter = np.argmin(nllh_tb)
         nllh.append(nllh_tb[best_iter])
         fitresults[target_batch] = fitresults_tb[best_iter]
         print target_batch, nllh[-1], fitresults_tb[best_iter]['success']
-    
+
     bf_t = np.argmin(nllh)
     fr = fitresults[bf_t]
     bf_par = {tofit[i]: fr['x'][i] for i in range(len(tofit))}

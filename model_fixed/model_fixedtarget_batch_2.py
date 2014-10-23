@@ -25,7 +25,7 @@ def pr_sample(n, t, s):
 def run(pars):
 
     verbose = pars.get('verbose', False)
-    data    = pars.get('data')['sampledata']
+    data    = pars.get('data')['samples']
 
     t = np.round(pars.get('target', 15)) # target total sample size
     s = pars.get('s', 1.)               # continue scale factor
