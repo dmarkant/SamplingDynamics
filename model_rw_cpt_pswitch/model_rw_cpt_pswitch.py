@@ -81,26 +81,45 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
     return np.array([p_down, p_stay, p_up])
 
 
-def transition_matrix_PQR(V, dv, tau, options, attended, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
+def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch):
+
+    # first construct the whole matrix
     m = len(V)
-    tm_pqr = np.zeros((m, m), float)
-    tm_pqr[0,0] = 1.
-    tm_pqr[1,1] = 1.
+    r = p_switch * np.eye(m)
+    r[0,0] = 0
+    r[m-1,m-1] = 0
+
+    
+    P = {}
+    for i, opt in enumerate(options):
+
+        P[i] = np.zeros((m, m), float)
+        P[i][0,0] = 1.
+        P[i][m-1, m-1] = 1.
+        
+        for row in range(1, m-1):
+            P[i][row,row-1:row+2] = (1 - p_switch) * transition_probs(options, i, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
+
+    Ps = np.concatenate([np.concatenate([P[0], r], axis=1), np.concatenate([r, P[1]], axis=1)])
+
     vi_pqr = []
-    start = np.array([[0, m - 1], range(1, m - 1)])
+    start = np.array([[0, m - 1, m, 2*m - 1], range(1, m - 1), range(m + 1, 2*m - 1)])
     for outer in start:
         for inner in outer:
             vi_pqr.append(inner)
+
     vi_pqr = np.array(vi_pqr)
-    V_pqr = V[vi_pqr] # sort state space
 
-    # construct PQR row by row
-    for i in range(1, m - 1):
-        row = np.where(V_pqr==V[i])[0][0]
-        ind_pqr = np.array([np.where(V_pqr==V[i-1])[0][0], np.where(V_pqr==V[i])[0][0], np.where(V_pqr==V[i+1])[0][0]])
-        tm_pqr[row, ind_pqr] = transition_probs(options, attended, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+    tm_pqr = np.zeros((m * 2, m * 2), float)
+    for i, vi in enumerate(vi_pqr):
+        tm_pqr[i,:] = Ps[vi,:]
 
-    return tm_pqr
+    tm = np.zeros((m * 2, m * 2), float)
+    for i, vi in enumerate(vi_pqr):
+        tm[:,i] = tm_pqr[:,vi]
+
+    return tm
 
 
 def run(pars):
@@ -115,7 +134,7 @@ def run(pars):
     prelec_elevation = pars.get('prelec_elevation', 1.)
     prelec_gamma = pars.get('prelec_gamma', 1.)
 
-    p_switch = pars.get('p_switch', 0.5)
+    p_switch = pars.get('p_switch', 0.1)
 
     delta = pars.get('delta', 1.)    # drift scaling factor
 
@@ -169,78 +188,43 @@ def run(pars):
         Z = np.matrix(Z)
 
 
-    r = p_switch * np.eye(m)
-    r[0,0] = 0
-    r[m-1,m-1] = 0
+    # repeat Z for both options, and re-normalize
+    Z = np.concatenate((Z, Z), axis=1)
+    Z = Z / float(np.sum(Z))
 
-    # a transition matrix must be created for each option
-    tm_pqr = {}
-    for i, opt in enumerate(options):
-        tm_pqr[i] = p_switch * transition_matrix_PQR(V, dv, tau, options, i, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
-
-        print tm_pqr[i]
-
-        #Q = tm_pqr[2:,2:]
-        #I = np.eye(m - 2)
-        #R = np.matrix(tm_pqr[2:,:2])
-        #IQ = np.matrix(linalg.inv(I - Q))
-
-    print np.array([[tm_pqr[0], r], [r, tm_pqr[1]]]).reshape((2*m, 2*m))
+    tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch)
 
 
-    print dummy
-
-
-    """
-    for trial in range(max_T):
-        for i, opt in enumerate(options):
-
-            dr = drift(options, i, trial, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
-            tm_pqr = transition_matrix_PQR(V, dv, dr, tau, alpha)
-
-            Q = tm_pqr[2:,2:]
-            I = np.eye(m - 2)
-            R = np.matrix(tm_pqr[2:,:2])
-            IQ = np.matrix(linalg.inv(I - Q))
-
-            print tm_pqr
-            #print np.sum(tm_pqr, 1)
-    """
-
-    print dummy
-
-
-    # transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
-
-    Q = tm_pqr[2:,2:]
-    I = np.eye(m - 2)
-    R = np.matrix(tm_pqr[2:,:2])
+    Q = tm_pqr[4:,4:]
+    I = np.eye(2 * (m - 2))
+    R = np.matrix(tm_pqr[4:,:4])
     IQ = np.matrix(linalg.inv(I - Q))
 
     # time steps for evaluation
     T = np.arange(1., max_T + 1, dt)
     N = map(int, np.floor(T/tau))
 
-    states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), m - 2))
+    states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), 2 * (m - 2)))
 
     # 1. overall response probabilities
-    resp_prob = Z * (IQ * R)
+    rp = Z * (IQ * R)
+    resp_prob = [rp[0,0] + rp[0,2], rp[0,1] + rp[0,3]]
 
     # 2. response probability over time
-    resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 2))
-
-    # 3. cumulative response probability over time
-    #resp_prob_cump = resp_prob_t.cumsum(axis=0)
+    resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 4))
+    resp_prob_t = np.array([resp_prob_t[:,0] + resp_prob_t[:,2], resp_prob_t[:,1] + resp_prob_t[:,3]])
 
     # 1. predicted stopping points, conditional on choice
-    p_tsteps = (Z * (IQ * IQ) * R) / resp_prob
+    #p_tsteps = (Z * (IQ * IQ) * R) / rp
+    p_tsteps = None
 
     # 2. probability of stopping over time
-    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/resp_prob for n in N]).reshape((len(N), 2))
+    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
+    p_stop_cond = np.array([p_stop_cond[:,0] + p_stop_cond[:,2], p_stop_cond[:,1] + p_stop_cond[:,3]])
 
     # 3. cumulative probability of stopping over time
-    p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
+    #p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
+    p_stop_cond_cump = None
 
     return {'T': T,
             'states_t': states_t,
