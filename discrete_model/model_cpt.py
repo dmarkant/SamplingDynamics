@@ -5,6 +5,8 @@ from copy import deepcopy
 from fitting import *
 from cogmod.cpt import util, pweight_prelec
 
+
+
 def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     """
     v -- current state
@@ -42,11 +44,11 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
         assert np.isnan(cov)==False and pooledvar > 0
     except:
         pass
-        #print 'problem with variance in drift rate!'
+        print 'problem with variance in drift rate!'
 
-    #return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
+    return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
 
-    return delta * (seu[1] - seu[0]) / 1.
+    #return delta * (seu[1] - seu[0]) / 1.
 
 
 def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
@@ -222,9 +224,14 @@ def loglik(value, args):
     elif pars['theta'] < 1. or pars['delta']<-1. or pars['delta']>1.:
         return np.inf
     else:
-        result = run(pars)
+        gpars = deepcopy(pars)
+        gpars.update({'data': pars['data']['samplesize'],
+                      'max_T': pars['data']['max_t'],
+                      'options': pars['data']['options']})
 
-        data = pars['data']
+        result = run(gpars)
+
+        data = pars['data']['samplesize']
         pchoice = result['resp_prob_t']
         pstop = result['p_stop_t']
 
