@@ -66,7 +66,7 @@ def nloglik(value, args):
     result = run(pars)
 
     llh = 0.
-    for trial, option in enumerate(pars['data']['sampledata']):
+    for trial, option in enumerate(pars['data']['samples']):
         if option == 0:
             llh += np.log(pfix(result['p_sample_A'][trial]))
         else:
@@ -92,7 +92,7 @@ def nloglik_across_gambles(value, args):
         result = run(_pars)
 
         llh = 0.
-        for trial, option in enumerate(_pars['data']['sampledata']):
+        for trial, option in enumerate(_pars['data']['samples']):
             if option == 0:
                 llh += np.log(pfix(result['p_sample_A'][trial]))
             else:
@@ -109,12 +109,12 @@ def nloglik_across_gambles(value, args):
 def fit_subject_across_gambles(data):
 
     def bic(f, pars):
-        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samples'].size + 1 for d in pars['data']]))
 
     # find the highest number of samples for a game
     counts = []
     for d in data:
-        counts.append(len(d['sampledata']))
+        counts.append(len(d['samples']))
     max_count = np.max(counts)
 
     tset = []

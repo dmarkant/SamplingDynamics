@@ -54,7 +54,7 @@ def get_state_trajectory(options, observations, eval_crit, eval_pow):
     cov       = np.sum(np.multiply(outs, ps))
     pooledvar = np.sum(evar) - 2 * cov
 
-    pooledvar = 1.
+    #pooledvar = 1.
 
     # assume unbiased starting position
     V = [0.]

@@ -21,7 +21,7 @@ def pr_sample(n, t, s):
 def run(pars):
 
     verbose = pars.get('verbose', False)
-    data    = pars.get('data')['sampledata']
+    data    = pars.get('data')['samples']
 
     t = np.round(pars.get('target', 5)) # target sample size per option
     s = pars.get('s', 1.)               # continue scale factor
@@ -52,7 +52,7 @@ def nloglik(value, args):
     result = run(pars)
 
     llh = 0.
-    for trial, option in enumerate(pars['data']['sampledata']):
+    for trial, option in enumerate(pars['data']['samples']):
         if option == 0:
             llh += np.log(pfix(result['p_sample_A'][trial]))
         else:
@@ -78,7 +78,7 @@ def nloglik_across_gambles(value, args):
         result = run(_pars)
 
         llh = 0.
-        for trial, option in enumerate(_pars['data']['sampledata']):
+        for trial, option in enumerate(_pars['data']['samples']):
             if option == 0:
                 llh += np.log(pfix(result['p_sample_A'][trial]))
             else:
@@ -95,7 +95,7 @@ def nloglik_across_gambles(value, args):
 def fit_subject_across_gambles(data):
 
     def bic(f, pars):
-        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['sampledata'].size + 1 for d in pars['data']]))
+        return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samples'].size + 1 for d in pars['data']]))
 
     #for d in data:
     #    print d['sampledata']
@@ -103,8 +103,8 @@ def fit_subject_across_gambles(data):
     # find the highest number of samples for a single option
     counts = []
     for d in data:
-        counts.append(np.sum(d['sampledata']==0))
-        counts.append(np.sum(d['sampledata']==1))
+        counts.append(np.sum(d['samples']==0))
+        counts.append(np.sum(d['samples']==1))
     max_count = np.max(counts)
 
     # grid search on target size, fit scaling
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     choice = df_choices[(df_choices['subject']==subj) & (df_choices['problem']==1)]['choice'].values[0]
 
     # run model for a single gamble
-    pars = {'data': {'sampledata': sampledata,
+    pars = {'data': {'samples': sampledata,
                      'choice': choice},
             'target': 5,
             's': 1.}
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     print run(pars)
 
     # get likelihood for a single gamble
-    pars = {'data': {'sampledata': sampledata,
+    pars = {'data': {'samples': sampledata,
                      'choice': choice},
             's': 1.,
             'fitting': ['target']}
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     problems = np.sort(sdata['problem'].unique())
     data = []
     for problem in problems:
-        data.append({'sampledata': sdata[sdata['problem']==problem]['option'].values,
+        data.append({'samples': sdata[sdata['problem']==problem]['option'].values,
                      'choice': df_choices[(df_choices['subject']==subj) & (df_choices['problem']==problem)]['choice'].values[0]})
 
     print fit_subject_across_gambles(data)
