@@ -43,16 +43,12 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
     try:
         assert np.isnan(cov)==False and pooledvar > 0
     except:
-        pass
-        #print 'problem with variance in drift rate!'
+        print 'problem with variance in drift rate!'
 
     if attended == 0:
         return (delta * -seu[0]) / np.sqrt(pooledvar)
     else:
         return (delta * seu[1]) / np.sqrt(pooledvar)
-
-
-    #return delta * (seu[1] - seu[0]) / 1.
 
 
 def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
@@ -68,6 +64,11 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
              and Busemeyer, 2003, p. 311)
     """
     dr = drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
+    if dr <= -1:
+        dr = -.9999
+    elif dr >= 1:
+        dr = .9999
 
     p_down = (1./(2 * alpha)) * (1 - (dr) * np.sqrt(tau))
     p_up = (1./(2 * alpha)) * (1 + (dr) * np.sqrt(tau))
@@ -89,14 +90,14 @@ def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, po
     r[0,0] = 0
     r[m-1,m-1] = 0
 
-    
+
     P = {}
     for i, opt in enumerate(options):
 
         P[i] = np.zeros((m, m), float)
         P[i][0,0] = 1.
         P[i][m-1, m-1] = 1.
-        
+
         for row in range(1, m-1):
             P[i][row,row-1:row+2] = (1 - p_switch) * transition_probs(options, i, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
 
@@ -207,16 +208,16 @@ def run(pars):
     states_t = np.array([Z * (matrix_power(Q, n - 1)) for n in N]).reshape((len(N), 2 * (m - 2)))
 
     # 1. overall response probabilities
-    rp = Z * (IQ * R)
-    resp_prob = [rp[0,0] + rp[0,2], rp[0,1] + rp[0,3]]
+    rp = np.array(Z * (IQ * R))[0]
+    resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
 
     # 2. response probability over time
     resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 4))
     resp_prob_t = np.array([resp_prob_t[:,0] + resp_prob_t[:,2], resp_prob_t[:,1] + resp_prob_t[:,3]])
 
     # 1. predicted stopping points, conditional on choice
-    #p_tsteps = (Z * (IQ * IQ) * R) / rp
-    p_tsteps = None
+    p_tsteps = (Z * (IQ * IQ) * R) / rp
+    p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
 
     # 2. probability of stopping over time
     p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
@@ -228,7 +229,7 @@ def run(pars):
 
     return {'T': T,
             'states_t': states_t,
-            'resp_prob': np.array(resp_prob)[0],
+            'resp_prob': resp_prob,
             'resp_prob_t': resp_prob_t,
             'p_tsteps': p_tsteps,
             'p_stop_t': p_stop_cond,
@@ -278,7 +279,7 @@ def loglik_across_gambles(value, args):
     for gambledata in pars['data']:
 
         gpars = deepcopy(pars)
-        gpars.update({'data': gambledata['samplesize'],
+        gpars.update({'data': gambledata['data'],
                       'max_T': gambledata['max_t'],
                       'options': gambledata['options']})
 
@@ -292,6 +293,35 @@ def loglik_across_gambles(value, args):
 
     if verbose: print '  llh: %s' % np.sum(llh)
     return np.sum(llh)
+
+
+def loglik_across_gambles_measured_switching(value, args):
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
+
+    llh = []
+    for gambledata in pars['data']:
+        g_llh = 0.
+
+
+        for obs in gambledata['data']:
+            choice, t, grp, pswitch = obs
+
+            gpars = deepcopy(pars)
+            gpars.update({'data': None,
+                          'p_switch': pswitch,
+                          'max_T': gambledata['max_t'],
+                          'options': gambledata['options']})
+
+
+            result = run(gpars)
+
+            g_llh += -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice])))
+        llh.append(g_llh)
+
+    if verbose: print '  llh: %s' % np.sum(llh)
+    return np.sum(llh)
+
 
 
 def loglik_across_gambles_by_group(value, args):

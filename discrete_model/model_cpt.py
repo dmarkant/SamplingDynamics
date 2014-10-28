@@ -6,12 +6,7 @@ from fitting import *
 from cogmod.cpt import util, pweight_prelec
 
 
-
-def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
-    """
-    v -- current state
-    """
-    sdw = gamma * v
+def option_stats(options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
 
     probs = []
     utils = []
@@ -33,8 +28,14 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
     pooledvar = np.sum(evar) - 2 * cov
     seu = np.sum(eu, axis=1)
 
+    #print '--------'
+    #print options[0]
+    #print options[1]
+
+
+    #print 'utils:', utils
+    #print 'eu:', eu
     #print 'seu:', seu
-    #print 'delta:', delta
     #print 'evar:', evar
     #print 'cov:', cov
     #print 'poolvar:', pooledvar
@@ -46,9 +47,19 @@ def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation
         pass
         print 'problem with variance in drift rate!'
 
+    return seu, pooledvar
+
+
+def drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
+    """
+    v -- current state
+    """
+    sdw = gamma * v
+
+    seu, pooledvar = option_stats(options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
     return delta * (seu[1] - seu[0]) / (np.sqrt(pooledvar))
 
-    #return delta * (seu[1] - seu[0]) / 1.
 
 
 def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
@@ -64,6 +75,11 @@ def transition_probs(v, delta, tau, gamma, alpha, options, pow_gain, pow_loss, w
              and Busemeyer, 2003, p. 311)
     """
     dr = drift(options, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+
+    if dr <= -1:
+        dr = -.9999
+    elif dr >= 1:
+        dr = .9999
 
     p_down = (1./(2 * alpha)) * (1 - (dr) * np.sqrt(tau))
     p_up = (1./(2 * alpha)) * (1 + (dr) * np.sqrt(tau))
