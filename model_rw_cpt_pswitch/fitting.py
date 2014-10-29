@@ -9,6 +9,7 @@ BOUNDS = {'theta': [1, np.inf],
           'prelec_gamma': [0, np.inf],
           'pow_gain': [0, np.inf],
           'pow_loss': [0, np.inf],
+          'p_switch': [0, 1],
           's': [0, np.inf]} # temp for cpt softmax
 
 
@@ -25,13 +26,15 @@ def pfix(p):
 
 def randstart(parname):
     if parname is 'theta':
-        return np.random.randint(4, 7)
+        return np.random.randint(2, 8)
     elif parname is 'delta':
         return 1.
     elif parname is 'prelec_elevation':
-        return 1.
+        return np.random.random()
     elif parname is 'prelec_gamma':
-        return 1.
+        return np.random.random()
+    elif parname is 'p_switch':
+        return 0.5
     else:
         return np.random.random()
 

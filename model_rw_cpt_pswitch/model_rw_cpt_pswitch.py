@@ -43,15 +43,29 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
     #print 'poolvar:', pooledvar
     #print 'sigma:', np.sqrt(pooledvar)
 
+    pooledvar = 1.
+
     try:
         assert np.isnan(cov)==False and pooledvar > 0
     except:
         print 'problem with variance in drift rate!'
 
+        print 'seu:', seu
+        print 'delta:', delta
+        print 'evar:', evar
+        print 'cov:', cov
+        print 'poolvar:', pooledvar
+
+        print np.sum(evar)
+        print 2 * cov
+
+        print 'sigma:', np.sqrt(pooledvar)
+
+
     if attended == 0:
-        return (delta * -seu[0]) / np.sqrt(pooledvar)
+        return (delta * -seu[0]) / np.sqrt(evar[0])
     else:
-        return (delta * seu[1]) / np.sqrt(pooledvar)
+        return (delta * seu[1]) / np.sqrt(evar[1])
 
 
 def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=None):
@@ -203,7 +217,6 @@ def run(pars):
 
     tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=driftrates)
 
-
     Q = tm_pqr[4:,4:]
     I = np.eye(2 * (m - 2))
     R = np.matrix(tm_pqr[4:,:4])
@@ -217,8 +230,8 @@ def run(pars):
 
     # 1. overall response probabilities
     rp = np.array(Z * (IQ * R))[0]
-    resp_prob = rp
-    #resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
+    #resp_prob = rp
+    resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
 
     # 2. response probability over time
     resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 4))
@@ -226,8 +239,8 @@ def run(pars):
 
     # 1. predicted stopping points, conditional on choice
     p_tsteps = (Z * (IQ * IQ) * R) / rp
-    p_tsteps = np.array(p_tsteps)
-    #p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
+    #p_tsteps = np.array(p_tsteps)
+    p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
 
     # 2. probability of stopping over time
     p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
@@ -298,7 +311,7 @@ def loglik_across_gambles(value, args):
         g_llh = 0.
         for obs in gpars['data']:
             choice, t, grp = obs
-            g_llh += -1 * (np.log(pfix(result['p_stop_t'][t, choice])) + np.log(pfix(result['resp_prob'][choice])))
+            g_llh += -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice])))
         llh.append(g_llh)
 
     if verbose: print '  llh: %s' % np.sum(llh)
@@ -317,28 +330,28 @@ def loglik_across_gambles_measured_switching(value, args):
         # first evaluate the drift rate given parameters
         driftrates = []
         for attended in [0, 1]:
-            driftrates.append(drift(gambledata['options'], 
-                                    attended, 
-                                    0, 
-                                    pars.get('delta', 1), 
-                                    pars.get('gamma', 1), 
-                                    pars.get('pow_gain', 1), 
-                                    pars.get('pow_loss', pars.get('pow_gain', 1)), 
-                                    pars.get('w_loss', 1), 
-                                    pars.get('prelec_elevation', 1), 
+            driftrates.append(drift(gambledata['options'],
+                                    attended,
+                                    0,
+                                    pars.get('delta', 1),
+                                    pars.get('gamma', 1),
+                                    pars.get('pow_gain', 1),
+                                    pars.get('pow_loss', pars.get('pow_gain', 1)),
+                                    pars.get('w_loss', 1),
+                                    pars.get('prelec_elevation', 1),
                                     pars.get('prelec_gamma', 1)))
-       
+
         gpars = deepcopy(pars)
         gpars.update({'data': None,
                       'options': gambledata['options'],
                       'driftrates': driftrates,
                       'max_T': gambledata['max_t']})
-   
+
 
         for obs in gambledata['data']:
             choice, t, grp, pswitch = obs
             gpars['p_switch'] = pswitch
-            
+
             result = run(gpars)
             g_llh += -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice])))
 
@@ -347,7 +360,7 @@ def loglik_across_gambles_measured_switching(value, args):
 
     if verbose: print '  llh: %s' % np.sum(llh)
     print 'time to evaluate:', time() - start
-    
+
     return np.sum(llh)
 
 
