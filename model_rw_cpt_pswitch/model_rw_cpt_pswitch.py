@@ -1,9 +1,12 @@
+from time import time
 import numpy as np
 from scipy import linalg
 from numpy.linalg import matrix_power
 from copy import deepcopy
 from fitting import *
 from cogmod.cpt import util, pweight_prelec
+
+
 
 def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
     """
@@ -51,7 +54,7 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
         return (delta * seu[1]) / np.sqrt(pooledvar)
 
 
-def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
+def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=None):
     """Get transition probabilities given parameters and current
     state.
 
@@ -63,7 +66,8 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
     alpha -- relative prob of staying in current state (see Diederich
              and Busemeyer, 2003, p. 311)
     """
-    dr = drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+    if dr is None:
+        dr = drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
 
     if dr <= -1:
         dr = -.9999
@@ -82,7 +86,10 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
     return np.array([p_down, p_stay, p_up])
 
 
-def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch):
+def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=None):
+
+    if dr is None:
+        dr = [None, None]
 
     # first construct the whole matrix
     m = len(V)
@@ -99,7 +106,7 @@ def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, po
         P[i][m-1, m-1] = 1.
 
         for row in range(1, m-1):
-            P[i][row,row-1:row+2] = (1 - p_switch) * transition_probs(options, i, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+            P[i][row,row-1:row+2] = (1 - p_switch) * transition_probs(options, i, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=dr[i])
 
 
     Ps = np.concatenate([np.concatenate([P[0], r], axis=1), np.concatenate([r, P[1]], axis=1)])
@@ -137,6 +144,7 @@ def run(pars):
 
     p_switch = pars.get('p_switch', 0.1)
 
+    driftrates = pars.get('driftrates', None)
     delta = pars.get('delta', 1.)    # drift scaling factor
 
     theta = np.float(np.round(pars.get('theta', 5)))     # boundaries
@@ -193,7 +201,7 @@ def run(pars):
     Z = np.concatenate((Z, Z), axis=1)
     Z = Z / float(np.sum(Z))
 
-    tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch)
+    tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=driftrates)
 
 
     Q = tm_pqr[4:,4:]
@@ -209,7 +217,8 @@ def run(pars):
 
     # 1. overall response probabilities
     rp = np.array(Z * (IQ * R))[0]
-    resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
+    resp_prob = rp
+    #resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
 
     # 2. response probability over time
     resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 4))
@@ -217,7 +226,8 @@ def run(pars):
 
     # 1. predicted stopping points, conditional on choice
     p_tsteps = (Z * (IQ * IQ) * R) / rp
-    p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
+    p_tsteps = np.array(p_tsteps)
+    #p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
 
     # 2. probability of stopping over time
     p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
@@ -299,27 +309,45 @@ def loglik_across_gambles_measured_switching(value, args):
     pars, fitting, verbose = unpack(value, args)
     if outside_bounds(pars): return np.inf
 
+    start = time()
     llh = []
     for gambledata in pars['data']:
         g_llh = 0.
 
+        # first evaluate the drift rate given parameters
+        driftrates = []
+        for attended in [0, 1]:
+            driftrates.append(drift(gambledata['options'], 
+                                    attended, 
+                                    0, 
+                                    pars.get('delta', 1), 
+                                    pars.get('gamma', 1), 
+                                    pars.get('pow_gain', 1), 
+                                    pars.get('pow_loss', pars.get('pow_gain', 1)), 
+                                    pars.get('w_loss', 1), 
+                                    pars.get('prelec_elevation', 1), 
+                                    pars.get('prelec_gamma', 1)))
+       
+        gpars = deepcopy(pars)
+        gpars.update({'data': None,
+                      'options': gambledata['options'],
+                      'driftrates': driftrates,
+                      'max_T': gambledata['max_t']})
+   
 
         for obs in gambledata['data']:
             choice, t, grp, pswitch = obs
-
-            gpars = deepcopy(pars)
-            gpars.update({'data': None,
-                          'p_switch': pswitch,
-                          'max_T': gambledata['max_t'],
-                          'options': gambledata['options']})
-
-
+            gpars['p_switch'] = pswitch
+            
             result = run(gpars)
-
             g_llh += -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice])))
+
+
         llh.append(g_llh)
 
     if verbose: print '  llh: %s' % np.sum(llh)
+    print 'time to evaluate:', time() - start
+    
     return np.sum(llh)
 
 
