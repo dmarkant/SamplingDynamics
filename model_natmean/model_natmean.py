@@ -49,7 +49,7 @@ def get_state_trajectory(options, observations, eval_crit, eval_pow):
         eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
         evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
 
-    outs      = np.outer(utils[0] - eu[0], utils[1] - eu[1])
+    outs      = np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
     ps        = np.outer(probs[0], probs[1])
     cov       = np.sum(np.multiply(outs, ps))
     pooledvar = np.sum(evar) - 2 * cov

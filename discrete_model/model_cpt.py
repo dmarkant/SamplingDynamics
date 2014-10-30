@@ -19,14 +19,26 @@ def option_stats(options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_g
         utils.append([util(outcome, pow_gain, pow_loss, w_loss) for (outcome, prob) in option])
 
         eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
-
         evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
 
-    outs =  np.outer(utils[0] - eu[0], utils[1] - eu[1])
+
+    #v_rR = np.sum(eu[0])
+    #v_rL = np.sum(eu[1])
+
+    #sigma_RL = 0.
+    #for i in range(3):
+    #    for j in range(3):
+    #        print i, j, probs[0][i] * probs[1][j], (utils[0][i] - v_rR) * (utils[1][j] - v_rL)
+    #        sigma_RL += probs[0][i] * probs[1][j] * (utils[0][i] - v_rR) * (utils[1][j] - v_rL)
+
+    outs =  np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
     ps   = np.outer(probs[0], probs[1])
     cov = np.sum(np.multiply(outs, ps))
+
+
     pooledvar = np.sum(evar) - 2 * cov
     seu = np.sum(eu, axis=1)
+
 
     #print '--------'
     #print options[0]
@@ -46,6 +58,23 @@ def option_stats(options, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_g
     except:
         pass
         print 'problem with variance in drift rate!'
+        print '--------'
+        print options[0]
+        print options[1]
+        print 'pow_gain:', pow_gain
+        print 'probs:', probs
+
+        print np.sum(probs, 1)
+
+        print 'utils:', utils
+        print 'eu:', eu
+        print 'seu:', seu
+        print 'evar:', evar
+        print 'cov:', cov
+        print 'poolvar:', pooledvar
+        print 'sigma:', np.sqrt(pooledvar)
+
+        print dummy
 
     return seu, pooledvar
 
@@ -275,11 +304,12 @@ def loglik_across_gambles(value, args):
 
         result = run(gpars)
 
-        g_llh = 0.
+        g_llh = []
         for obs in gpars['data']:
             choice, t, grp = obs
-            g_llh += -1 * (np.log(pfix(result['p_stop_t'][t, choice])) + np.log(pfix(result['resp_prob'][choice])))
-        llh.append(g_llh)
+            g_llh.append(-1 * (np.log(pfix(result['p_stop_t'][t, choice])) + np.log(pfix(result['resp_prob'][choice]))))
+
+        llh.append(np.sum(g_llh))
 
     if verbose: print '  llh: %s' % np.sum(llh)
     return np.sum(llh)

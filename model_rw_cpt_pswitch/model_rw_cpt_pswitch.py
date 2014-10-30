@@ -30,42 +30,21 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
         eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
         evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
 
-    outs =  np.outer(utils[0] - eu[0], utils[1] - eu[1])
-    ps   = np.outer(probs[0], probs[1])
-    cov = np.sum(np.multiply(outs, ps))
-    pooledvar = np.sum(evar) - 2 * cov
     seu = np.sum(eu, axis=1)
 
-    #print 'seu:', seu
-    #print 'delta:', delta
-    #print 'evar:', evar
-    #print 'cov:', cov
-    #print 'poolvar:', pooledvar
-    #print 'sigma:', np.sqrt(pooledvar)
-
-    pooledvar = 1.
+    if attended == 0:
+        dr = (delta * -seu[0]) / np.sqrt(evar[0])
+    else:
+        dr = (delta * seu[1]) / np.sqrt(evar[1])
 
     try:
-        assert np.isnan(cov)==False and pooledvar > 0
-    except:
-        print 'problem with variance in drift rate!'
+        assert not np.isnan(dr)
+    except AssertionError:
+        print 'GAHHH'
+        print evar
+        print dr
 
-        print 'seu:', seu
-        print 'delta:', delta
-        print 'evar:', evar
-        print 'cov:', cov
-        print 'poolvar:', pooledvar
-
-        print np.sum(evar)
-        print 2 * cov
-
-        print 'sigma:', np.sqrt(pooledvar)
-
-
-    if attended == 0:
-        return (delta * -seu[0]) / np.sqrt(evar[0])
-    else:
-        return (delta * seu[1]) / np.sqrt(evar[1])
+    return dr
 
 
 def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=None):
@@ -246,7 +225,8 @@ def run(pars):
 
     # 2. probability of stopping over time
     p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
-    p_stop_cond = np.array([p_stop_cond[:,0] + p_stop_cond[:,2], p_stop_cond[:,1] + p_stop_cond[:,3]])
+    p_stop_cond_sep = p_stop_cond
+    p_stop_cond = np.array([np.mean([p_stop_cond[:,0], p_stop_cond[:,2]], 0), np.mean([p_stop_cond[:,1] + p_stop_cond[:,3]], 0)])
 
     # 3. cumulative probability of stopping over time
     #p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
@@ -255,9 +235,11 @@ def run(pars):
     return {'T': T,
             'states_t': states_t,
             'resp_prob': resp_prob,
+            'resp_prob_sep': np.array(rp),
             'resp_prob_t': resp_prob_t,
             'p_tsteps': p_tsteps,
             'p_stop_t': p_stop_cond,
+            'p_stop_t_sep': p_stop_cond_sep,
             'p_stop_t_cump': p_stop_cond_cump}
 
 
@@ -310,11 +292,12 @@ def loglik_across_gambles(value, args):
 
         result = run(gpars)
 
-        g_llh = 0.
+        g_llh = []
         for obs in gpars['data']:
             choice, t, grp = obs
-            g_llh += -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice])))
-        llh.append(g_llh)
+            g_llh.append( -1 * (np.log(pfix(result['p_stop_t'][choice, t])) + np.log(pfix(result['resp_prob'][choice]))) )
+
+        llh.append(np.sum(g_llh))
 
     if verbose: print '  llh: %s' % np.sum(llh)
     return np.sum(llh)
