@@ -96,6 +96,8 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
         assert np.round(np.sum([p_down, p_stay, p_up]), 5)==1.
     except AssertionError:
         print 'GAH'
+        print dr
+        print p_down, p_stay, p_up
         print np.sum([p_down, p_stay, p_up])
     return np.array([p_down, p_stay, p_up])
 
