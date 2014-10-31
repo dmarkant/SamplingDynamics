@@ -128,12 +128,12 @@ mux2=para(2)-s2*delta*x;
         eta =tau*z'*(invq*invq)*ra;
         etb =tau*z'*(invq*invq)*rb;
         
+proba=sum(proba);
+probb=sum(probb);
  
         
 eta=sum(eta);
 etb=sum(etb);
-proba=sum(proba);
-probb=sum(probb);
 eta=eta./proba;
 etb=etb./probb;
             

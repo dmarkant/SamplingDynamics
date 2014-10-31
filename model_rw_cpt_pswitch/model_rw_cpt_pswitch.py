@@ -40,7 +40,6 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
     try:
         assert not np.isnan(dr)
     except AssertionError:
-        print 'GAHHH'
         print evar
         print dr
 
@@ -74,7 +73,6 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
     try:
         assert np.round(np.sum([p_down, p_stay, p_up]), 5)==1.
     except AssertionError:
-        print 'GAH'
         print dr
         print p_down, p_stay, p_up
         print np.sum([p_down, p_stay, p_up])
@@ -137,6 +135,7 @@ def run(pars):
     prelec_elevation = pars.get('prelec_elevation', 1.)
     prelec_gamma = pars.get('prelec_gamma', 1.)
 
+    starting = pars.get('starting', None)
     p_switch = pars.get('p_switch', 0.1)
 
     driftrates = pars.get('driftrates', None)
@@ -193,9 +192,15 @@ def run(pars):
 
 
     # repeat Z for both options, and re-normalize
-    Z = np.concatenate((Z, Z), axis=1)
+    if starting is None:
+        Z = np.concatenate((Z, Z), axis=1)
+    elif starting is 0:
+        Z = np.concatenate((Z, np.matrix(np.zeros(m - 2))), axis=1)
+    elif starting is 1:
+        Z = np.concatenate((np.matrix(np.zeros(m - 2)), Z), axis=1)
     Z = Z / float(np.sum(Z))
 
+    # the transition matrix 
     tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=driftrates)
 
     Q = tm_pqr[4:,4:]
@@ -211,22 +216,27 @@ def run(pars):
 
     # 1. overall response probabilities
     rp = np.array(Z * (IQ * R))[0]
-    #resp_prob = rp
     resp_prob = np.array([rp[0] + rp[2], rp[1] + rp[3]])
+
 
     # 2. response probability over time
     resp_prob_t = np.array([Z * (matrix_power(Q, n - 1) * R) for n in N]).reshape((len(N), 4))
     resp_prob_t = np.array([resp_prob_t[:,0] + resp_prob_t[:,2], resp_prob_t[:,1] + resp_prob_t[:,3]])
 
+
     # 1. predicted stopping points, conditional on choice
-    p_tsteps = (Z * (IQ * IQ) * R) / rp
-    #p_tsteps = np.array(p_tsteps)
-    p_tsteps = np.array([np.mean([p_tsteps[0,0], p_tsteps[0,2]]), np.mean([p_tsteps[0,1], p_tsteps[0,3]])])
+    p_tsteps = (Z * (IQ * IQ) * R)
+    p_tsteps = np.array([np.sum([p_tsteps[0,0], p_tsteps[0,2]]), np.sum([p_tsteps[0,1], p_tsteps[0,3]])])
+    p_tsteps = p_tsteps / resp_prob
+    #p_tsteps = (Z * (IQ * IQ) * R) / rp
+    #p_tsteps = np.array([np.sum([p_tsteps[0,0], p_tsteps[0,2]]), np.sum([p_tsteps[0,1], p_tsteps[0,3]])])
 
     # 2. probability of stopping over time
-    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R)))/rp for n in N]).reshape((len(N), 4))
+    p_stop_cond = np.array([(Z * ((matrix_power(Q, n - 1) * R))) for n in N]).reshape((len(N), 4))
     p_stop_cond_sep = p_stop_cond
-    p_stop_cond = np.array([np.mean([p_stop_cond[:,0], p_stop_cond[:,2]], 0), np.mean([p_stop_cond[:,1] + p_stop_cond[:,3]], 0)])
+    p_stop_cond = np.array([np.sum([p_stop_cond[:,0], p_stop_cond[:,2]], 0), np.sum([p_stop_cond[:,1] + p_stop_cond[:,3]], 0)])
+
+    p_stop_cond = np.array([p_stop_cond[0] / resp_prob[0], p_stop_cond[1] / resp_prob[1]])
 
     # 3. cumulative probability of stopping over time
     #p_stop_cond_cump = np.array([Z * IQ * (I - matrix_power(Q, n)) * R / resp_prob for n in N]).reshape((len(N), 2))
