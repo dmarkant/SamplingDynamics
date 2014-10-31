@@ -7,8 +7,8 @@ BOUNDS = {'theta': [1, np.inf],
           'z_temp': [0, 10],
           'prelec_elevation': [0, np.inf],
           'prelec_gamma': [0, np.inf],
-          'pow_gain': [0, 10],
-          'pow_loss': [0, 10],
+          'pow_gain': [0, 100],
+          'pow_loss': [0, 100],
           'w_loss': [0, np.inf],
           's': [0, np.inf]} # temp for cpt softmax
 

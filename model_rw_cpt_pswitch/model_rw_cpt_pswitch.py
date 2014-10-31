@@ -7,16 +7,14 @@ from fitting import *
 from cogmod.cpt import util, pweight_prelec
 
 
+def option_evaluation(pars):
 
-def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma):
-    """
-    For this version of model, define a different drift rate for each option (allowing
-    switches of attention between them).
-
-    attended -- index of current option
-    v -- current state
-    """
-    sdw = gamma * v
+    options = pars.get('options')
+    pow_gain = pars.get('pow_gain', 1.)
+    pow_loss = pars.get('pow_loss', pow_gain)
+    w_loss = pars.get('w_loss', 1.)
+    prelec_elevation = pars.get('prelec_elevation', 1.)
+    prelec_gamma = pars.get('prelec_gamma', 1.)
 
     probs = []
     utils = []
@@ -25,24 +23,34 @@ def drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec
 
     for opt_i, option in enumerate(options):
 
-        probs.append([pweight_prelec(prob, prelec_elevation, prelec_gamma) for (outcome, prob) in option])
-        utils.append([util(outcome, pow_gain, pow_loss, w_loss) for (outcome, prob) in option])
-        eu.append(np.array([probs[opt_i][i] * utils[opt_i][i] for i in range(len(probs[opt_i]))]))
-        evar.append(np.sum([probs[opt_i][i] * (utils[opt_i][i] ** 2) for i in range(len(probs[opt_i]))]) - np.sum(eu[opt_i]) ** 2)
+        probs.append(pweight_prelec(option[:,1], prelec_elevation, prelec_gamma))
+        utils.append(util_v(option[:,0], pow_gain, pow_loss, w_loss))
+        eu.append(np.multiply(probs[opt_i], utils[opt_i]))
+        evar.append(np.dot(probs[opt_i], utils[opt_i] ** 2) - np.sum(eu[opt_i]) ** 2)
 
     seu = np.sum(eu, axis=1)
 
+    return seu, evar
+
+
+def drift(attended, pars, state=0):
+    """
+    For this version of model, define a different drift rate for each option (allowing
+    switches of attention between them).
+
+    attended -- index of current option
+    v -- current state
+    """
+    delta = pars.get('delta', 1.)
+    gamma = pars.get('gamma', 0.)
+    sdw   = gamma * state
+
+    seu, evar = option_evaluation(pars)
+
     if attended == 0:
-        dr = (delta * -seu[0]) / np.sqrt(evar[0])
+        dr = (delta * (-seu[0] + sdw)) / np.sqrt(evar[0])
     else:
-        dr = (delta * seu[1]) / np.sqrt(evar[1])
-
-    try:
-        assert not np.isnan(dr)
-    except AssertionError:
-        print evar
-        print dr
-
+        dr = (delta * (seu[1] + sdw)) / np.sqrt(evar[1])
     return dr
 
 
@@ -200,7 +208,7 @@ def run(pars):
         Z = np.concatenate((np.matrix(np.zeros(m - 2)), Z), axis=1)
     Z = Z / float(np.sum(Z))
 
-    # the transition matrix 
+    # the transition matrix
     tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=driftrates)
 
     Q = tm_pqr[4:,4:]
