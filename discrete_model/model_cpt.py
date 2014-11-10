@@ -4,7 +4,6 @@ from numpy.linalg import matrix_power
 from copy import deepcopy
 from fitting import *
 from cogmod.cpt import util_v, pweight_prelec
-from time import time
 
 
 def option_evaluation(pars):
@@ -66,7 +65,7 @@ def drift(pars, state=0):
     return delta * (seu[1] - seu[0] + sdw) / (np.sqrt(pooledvar))
 
 
-def transition_probs(pars, state=0):
+def transition_probs(pars, tau, state=0):
     """Get transition probabilities given parameters and current
     state.
 
@@ -77,9 +76,11 @@ def transition_probs(pars, state=0):
              and Busemeyer, 2003, p. 311)
     """
     alpha = pars.get('alpha', 1.3)
-    tau   = pars.get('tau', 1.)
 
-    dr = drift(pars, state=state)
+    if 'driftrates' in pars:
+        dr = pars['driftrates']
+    else:
+        dr = drift(pars, state=state)
 
     # drift must be bounded by -1, 1 to ensure probabilities
     if dr <= -1:
@@ -100,7 +101,7 @@ def transition_probs(pars, state=0):
     return [p_down, p_stay, p_up]
 
 
-def transition_matrix_PQR(V, dv, drift_fnc, pars):
+def transition_matrix_PQR(V, dv, tau, pars):
     """
     Transition matrix in arranged in PQR form
 
@@ -126,9 +127,9 @@ def transition_matrix_PQR(V, dv, drift_fnc, pars):
     # transition probabilities for each state. Otherwise,
     # use same transition probabilities for everything
     if gamma == 0.:
-        tp = np.tile(transition_probs(pars), (m - 2, 1))
+        tp = np.tile(transition_probs(pars, tau), (m - 2, 1))
     else:
-        tp = np.array([transition_probs(pars, state=i*dv) for i in range(1, m - 1)])
+        tp = np.array([transition_probs(pars, tau, state=i*dv) for i in range(1, m - 1)])
 
     # construct PQR row by row
     for i in range(1, m - 1):
@@ -188,7 +189,7 @@ def run(pars):
         Z = np.matrix(Z)
 
     # transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, drift, pars)
+    tm_pqr = transition_matrix_PQR(V, dv, tau, pars)
 
     Q = tm_pqr[2:,2:]
     I = np.eye(m - 2)
@@ -226,43 +227,29 @@ def run(pars):
 
 
 def loglik(value, args):
+    pars, fitting, verbose = unpack(value, args)
+    if outside_bounds(pars): return np.inf
 
     verbose = args.get('verbose', False)
 
-    pars = deepcopy(args)
-    fitting = pars['fitting']
-    if verbose: print 'evaluating:'
-    for i, k in enumerate(fitting):
-        pars[k] = value[i]
-        if verbose: print '  %s=%s' % (k, pars[k])
+    gpars = deepcopy(pars)
+    gpars.update({'data': pars['data']['samplesize'],
+                  'max_T': pars['data']['max_t'],
+                  'options': pars['data']['options']})
 
+    result = run(gpars)
 
-    if 'z_temp' in pars and pars['z_temp'] <= 0.:
-        return np.inf
-    elif 'z_width' in pars and (pars['z_width']<.05 or pars['z_width']>1):
-        return np.inf
-    elif pars['theta'] < 1. or pars['delta']<-1. or pars['delta']>1.:
-        return np.inf
-    else:
-        gpars = deepcopy(pars)
-        gpars.update({'data': pars['data']['samplesize'],
-                      'max_T': pars['data']['max_t'],
-                      'options': pars['data']['options']})
+    data = pars['data']['samplesize']
+    pchoice = result['resp_prob_t']
+    pstop = result['p_stop_t']
 
-        result = run(gpars)
+    llh = 0.
+    for obs in data:
+        choice, t = obs
+        llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(result['resp_prob'][choice])))
 
-        data = pars['data']['samplesize']
-        pchoice = result['resp_prob_t']
-        pstop = result['p_stop_t']
-
-        llh = 0.
-        for obs in data:
-            choice, t = obs
-            llh += -1 * (np.log(pfix(pstop[t, choice])) + np.log(pfix(result['resp_prob'][choice])))
-            #llh += -1 * (np.log(pfix(pstop[t, choice])))
-
-        if verbose: print '  llh: %s' % llh
-        return llh
+    if verbose: print '  llh: %s' % llh
+    return llh
 
 
 def loglik_across_gambles(value, args):

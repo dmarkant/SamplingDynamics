@@ -4,8 +4,37 @@ from scipy import linalg
 from numpy.linalg import matrix_power
 from copy import deepcopy
 from fitting import *
-from cogmod.cpt import util, pweight_prelec
+from cogmod.cpt import util_v, pweight_prelec
 
+"""
+def option_evaluation(pars):
+
+    options = pars.get('options')
+    pow_gain = pars.get('pow_gain', 1.)
+    pow_loss = pars.get('pow_loss', pow_gain)
+    w_loss = pars.get('w_loss', 1.)
+    prelec_elevation = pars.get('prelec_elevation', 1.)
+    prelec_gamma = pars.get('prelec_gamma', 1.)
+
+    probs = []
+    utils = []
+    eu    = []
+    evar =  []
+
+    for opt_i, option in enumerate(options):
+
+        probs.append(pweight_prelec(option[:,1], prelec_elevation, prelec_gamma))
+        utils.append(util_v(option[:,0], pow_gain, pow_loss, w_loss))
+        eu.append(np.multiply(probs[opt_i], utils[opt_i]))
+        evar.append(np.dot(probs[opt_i], utils[opt_i] ** 2) - np.sum(eu[opt_i]) ** 2)
+
+    seu = np.sum(eu, axis=1)
+
+    # set a minimum value for the variance
+    evar = map(lambda v: np.max([v, .00001]), evar)
+
+    return seu, evar
+"""
 
 def option_evaluation(pars):
 
@@ -30,7 +59,29 @@ def option_evaluation(pars):
 
     seu = np.sum(eu, axis=1)
 
-    return seu, evar
+    # covariance and pooled variance
+    outs =  np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
+    ps   = np.outer(probs[0], probs[1])
+    cov = np.sum(np.multiply(outs, ps))
+    pooledvar = np.sum(evar) - 2 * cov
+
+    try:
+        assert np.isnan(cov)==False and pooledvar > 0
+    except:
+        print 'problem with variance in drift rate!'
+        print '--------'
+        print options[0]
+        print options[1]
+        print 'pow_gain:', pow_gain
+        print 'probs:', probs
+        print 'utils:', utils
+        print 'eu:', eu
+        print 'seu:', seu
+        print 'evar:', evar
+        print 'cov:', cov
+        print 'poolvar:', pooledvar
+
+    return seu, pooledvar
 
 
 def drift(attended, pars, state=0):
@@ -39,36 +90,53 @@ def drift(attended, pars, state=0):
     switches of attention between them).
 
     attended -- index of current option
-    v -- current state
+    state -- current state, for state-depending weighting
     """
     delta = pars.get('delta', 1.)
     gamma = pars.get('gamma', 0.)
     sdw   = gamma * state
 
-    seu, evar = option_evaluation(pars)
+    #seu, evar = option_evaluation(pars)
+    seu, pooledvar = option_evaluation(pars)
 
     if attended == 0:
-        dr = (delta * (-seu[0] + sdw)) / np.sqrt(evar[0])
+        #dr = (delta * (-seu[0] + sdw)) / np.sqrt(evar[0])
+        dr = (delta * (-seu[0] + sdw)) / np.sqrt(pooledvar)
+        
     else:
-        dr = (delta * (seu[1] + sdw)) / np.sqrt(evar[1])
+        #dr = (delta * (seu[1] + sdw)) / np.sqrt(evar[1])
+        dr = (delta * (seu[1] + sdw)) / np.sqrt(pooledvar)
+
+    try:
+        assert not np.isnan(dr)
+    except AssertionError:
+        print 'drift is nan'
+        print pars
+        print seu
+        print evar
+
     return dr
 
 
-def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=None):
+def transition_probs(attended, state, tau, pars):
     """Get transition probabilities given parameters and current
     state.
 
+    attended -- index of attended option
     v -- current state
     delta -- drift parameter
     gamma -- state-dependent weight
-    sigma -- diffusion parameter
     tau -- time step size
     alpha -- relative prob of staying in current state (see Diederich
              and Busemeyer, 2003, p. 311)
     """
-    if dr is None:
-        dr = drift(options, attended, v, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma)
+    alpha = pars.get('alpha', 1.3)
 
+    if 'driftrates' in pars:
+        dr = pars['driftrates'][attended]
+    else:
+        dr = drift(attended, pars, state=state)
+    
     if dr <= -1:
         dr = -.9999
     elif dr >= 1:
@@ -87,10 +155,11 @@ def transition_probs(options, attended, v, tau, alpha, delta, gamma, pow_gain, p
     return np.array([p_down, p_stay, p_up])
 
 
-def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=None):
+def transition_matrix_PQR(V, dv, tau, pars):
 
-    if dr is None:
-        dr = [None, None]
+    options  = pars.get('options', None)
+    p_switch = pars.get('p_switch', 0.5)
+    gamma = pars.get('gamma', 0.)
 
     # first construct the whole matrix
     m = len(V)
@@ -102,23 +171,24 @@ def transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, po
     P = {}
     for i, opt in enumerate(options):
 
+        if gamma == 0.:
+            tp = np.tile(transition_probs(i, 0, tau, pars), (m - 2, 1))
+        else:
+            tp = np.array([transition_probs(i, state, tau, pars) for state in range(1, m - 1)])
+
+        #print tp
+        #print dummy
+
         P[i] = np.zeros((m, m), float)
         P[i][0,0] = 1.
         P[i][m-1, m-1] = 1.
 
         for row in range(1, m-1):
-            P[i][row,row-1:row+2] = (1 - p_switch) * transition_probs(options, i, i*dv, tau, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, dr=dr[i])
+            P[i][row,row-1:row+2] = (1 - p_switch) * tp[row-1]
 
 
     Ps = np.concatenate([np.concatenate([P[0], r], axis=1), np.concatenate([r, P[1]], axis=1)])
-
-    vi_pqr = []
-    start = np.array([[0, m - 1, m, 2*m - 1], range(1, m - 1), range(m + 1, 2*m - 1)])
-    for outer in start:
-        for inner in outer:
-            vi_pqr.append(inner)
-
-    vi_pqr = np.array(vi_pqr)
+    vi_pqr = np.concatenate(([0, m - 1, m, 2*m - 1], np.arange(1, m - 1), np.arange(m+1, 2*m-1)))
 
     tm_pqr = np.zeros((m * 2, m * 2), float)
     for i, vi in enumerate(vi_pqr):
@@ -135,28 +205,11 @@ def run(pars):
 
     verbose = pars.get('verbose', False)
 
-    options = pars.get('options')
-    pow_gain = pars.get('pow_gain', 1.)
-    pow_loss = pars.get('pow_loss', pow_gain) # if not provided, assume
-                                              # same as pow_gain
-    w_loss = pars.get('w_loss', 1.)
-    prelec_elevation = pars.get('prelec_elevation', 1.)
-    prelec_gamma = pars.get('prelec_gamma', 1.)
-
     starting = pars.get('starting', None)
-    p_switch = pars.get('p_switch', 0.1)
-
-    driftrates = pars.get('driftrates', None)
-    delta = pars.get('delta', 1.)    # drift scaling factor
-
     theta = np.float(np.round(pars.get('theta', 5)))     # boundaries
-
     sigma = pars.get('sigma', 1.)    # diffusion parameter
-    gamma = pars.get('gamma', 0.)    # state-dependent weight on drift
     max_T = pars.get('max_T', 100)   # range of timesteps to evaluate over
     dt    = pars.get('dt', 1.)       # size of timesteps to evaluate over
-    alpha = pars.get('alpha', 1.3)   # for transition probs, controls the
-                                     # stay probability (must be > 1)
 
     dv    = pars.get('dv', 1.)
     tau   = (dv**2)/(sigma**2)       # with default settings, equal to 1.
@@ -209,7 +262,7 @@ def run(pars):
     Z = Z / float(np.sum(Z))
 
     # the transition matrix
-    tm_pqr = transition_matrix_PQR(V, dv, tau, options, alpha, delta, gamma, pow_gain, pow_loss, w_loss, prelec_elevation, prelec_gamma, p_switch, dr=driftrates)
+    tm_pqr = transition_matrix_PQR(V, dv, tau, pars)
 
     Q = tm_pqr[4:,4:]
     I = np.eye(2 * (m - 2))
