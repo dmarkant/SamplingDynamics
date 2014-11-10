@@ -50,21 +50,40 @@ def option_evaluation(pars):
     eu    = []
     evar =  []
 
+
+    #for p in pars:
+    #    print p, pars[p]
+
     for opt_i, option in enumerate(options):
 
         probs.append(pweight_prelec(option[:,1], prelec_elevation, prelec_gamma))
         utils.append(util_v(option[:,0], pow_gain, pow_loss, w_loss))
         eu.append(np.multiply(probs[opt_i], utils[opt_i]))
+
+        #print np.sum(eu[opt_i])
+
+        #print np.dot(probs[opt_i], (utils[opt_i] - np.sum(eu[opt_i])) ** 2)
+
+        #print np.dot(probs[opt_i], utils[opt_i] ** 2) - np.sum(eu[opt_i]) ** 2
+        #print dummy
+
         evar.append(np.dot(probs[opt_i], utils[opt_i] ** 2) - np.sum(eu[opt_i]) ** 2)
+
 
     seu = np.sum(eu, axis=1)
 
-    # covariance and pooled variance
-    outs =  np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
-    ps   = np.outer(probs[0], probs[1])
-    cov = np.sum(np.multiply(outs, ps))
-    pooledvar = np.sum(evar) - 2 * cov
+    #print np.sum(probs, axis=1)
 
+    #print eu
+    #print evar
+
+    # covariance and pooled variance
+    #outs =  np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
+    #ps   = np.outer(probs[0], probs[1])
+    #cov = np.sum(np.multiply(outs, ps))
+    #pooledvar = np.sum(evar) - 2 * cov
+
+    """
     try:
         assert np.isnan(cov)==False and pooledvar > 0
     except:
@@ -80,8 +99,9 @@ def option_evaluation(pars):
         print 'evar:', evar
         print 'cov:', cov
         print 'poolvar:', pooledvar
+    """
 
-    return seu, pooledvar
+    return seu, evar
 
 
 def drift(attended, pars, state=0):
@@ -96,24 +116,32 @@ def drift(attended, pars, state=0):
     gamma = pars.get('gamma', 0.)
     sdw   = gamma * state
 
-    #seu, evar = option_evaluation(pars)
-    seu, pooledvar = option_evaluation(pars)
+    seu, evar = option_evaluation(pars)
+    #seu, pooledvar = option_evaluation(pars)
+
+    try:
+        assert np.min(evar) > 0
+    except AssertionError:
+        print '!! | negative variance'
+        print 'evar:', evar
+        print dummy
+
 
     if attended == 0:
-        #dr = (delta * (-seu[0] + sdw)) / np.sqrt(evar[0])
-        dr = (delta * (-seu[0] + sdw)) / np.sqrt(pooledvar)
-        
+        dr = (delta * (-seu[0] + sdw)) / np.sqrt(evar[0])
+        #dr = (delta * (-seu[0] + sdw)) / np.sqrt(pooledvar)
+
     else:
-        #dr = (delta * (seu[1] + sdw)) / np.sqrt(evar[1])
-        dr = (delta * (seu[1] + sdw)) / np.sqrt(pooledvar)
+        dr = (delta * (seu[1] + sdw)) / np.sqrt(evar[1])
+        #dr = (delta * (seu[1] + sdw)) / np.sqrt(pooledvar)
 
     try:
         assert not np.isnan(dr)
     except AssertionError:
         print 'drift is nan'
-        print pars
-        print seu
-        print evar
+        print 'seu:', seu
+        print 'evar:', evar
+        print dummy
 
     return dr
 
@@ -136,7 +164,7 @@ def transition_probs(attended, state, tau, pars):
         dr = pars['driftrates'][attended]
     else:
         dr = drift(attended, pars, state=state)
-    
+
     if dr <= -1:
         dr = -.9999
     elif dr >= 1:

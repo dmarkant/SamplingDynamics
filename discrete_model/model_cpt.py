@@ -82,7 +82,7 @@ def transition_probs(pars, tau, state=0):
     else:
         dr = drift(pars, state=state)
 
-    # drift must be bounded by -1, 1 to ensure probabilities
+    # drift must be bounded by -1, 1
     if dr <= -1:
         dr = -.99999
     elif dr >= 1:
