@@ -69,13 +69,10 @@ def option_evaluation(pars):
 
         evar.append(np.dot(probs[opt_i], utils[opt_i] ** 2) - np.sum(eu[opt_i]) ** 2)
 
-
     seu = np.sum(eu, axis=1)
 
-    #print np.sum(probs, axis=1)
-
-    #print eu
-    #print evar
+    # ensure variance is positive
+    evar = np.array(map(lambda v: np.max([v, 1e-15]), evar))
 
     # covariance and pooled variance
     #outs =  np.outer(utils[0] - np.sum(eu[0]), utils[1] - np.sum(eu[1]))
@@ -203,9 +200,6 @@ def transition_matrix_PQR(V, dv, tau, pars):
             tp = np.tile(transition_probs(i, 0, tau, pars), (m - 2, 1))
         else:
             tp = np.array([transition_probs(i, state, tau, pars) for state in range(1, m - 1)])
-
-        #print tp
-        #print dummy
 
         P[i] = np.zeros((m, m), float)
         P[i][0,0] = 1.

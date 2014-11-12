@@ -1,7 +1,8 @@
 import sys
 sys.path.append('../')
 
-import pickle
+import pickle, os
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from helpers import *
@@ -13,12 +14,13 @@ from model_rw_cpt_pswitch import model_rw_cpt_pswitch
 from model_rw_cpt_pswitch.fitting import *
 from cogmod.fitting import bic
 
+from mypy.sim import sim_id_str, pickle_sim_result, unpickle_sim_result
+
 
 GAMBLE_DATA_PATH = '../dfe_by_gamble.csv'
 SUBJECT_DATA_PATH = '../dfe_by_game.csv'
 OUTPUT_PATH = './output'
 
-data_by_gamble = pd.read_csv(GAMBLE_DATA_PATH)
 
 def get_options(gid):
     gdata = data_by_gamble[data_by_gamble['gid']==gid]
@@ -27,16 +29,22 @@ def get_options(gid):
     return [L, H]
 
 
-data = pd.read_csv(SUBJECT_DATA_PATH)
-gamble_lab = data['gamble_lab'].unique()
 
-# sort by problem type
-gambles = data[data['partid']==1]
-gambles_srt = gambles.sort(['domain', 'pairtype', 'session'])
-gamble_lab_srt = gambles_srt['gamble_lab']
-switchfreq = data.groupby('partid').apply(lambda x: np.mean((1 + x['switchcount'])/x['samplesize']))
 
-SUBJ = data['partid'].unique()
+def init():
+    global data, data_by_gamble, gamble_lab_srt, switchfreq, SUBJ
+    data_by_gamble = pd.read_csv(GAMBLE_DATA_PATH)
+
+    data = pd.read_csv(SUBJECT_DATA_PATH)
+    gamble_lab = data['gamble_lab'].unique()
+
+    # sort by problem type
+    gambles = data[data['partid']==1]
+    gambles_srt = gambles.sort(['domain', 'pairtype', 'session'])
+    gamble_lab_srt = gambles_srt['gamble_lab']
+    switchfreq = data.groupby('partid').apply(lambda x: np.mean((1 + x['switchcount'])/x['samplesize']))
+
+    SUBJ = data['partid'].unique()
 
 
 def subject_fitdata(sid):
@@ -162,27 +170,51 @@ def show_result(sid, fitresult):
 
 def save_result(sid, fitresult):
 
-    # write result to file
-    with open('%s/%s.pkl' % (OUTPUT_PATH, sid), 'w') as fp:
-        pickle.dump(fitresult, fp)
+    fitting = deepcopy(fitresult['fitting'])
+    if 'theta' not in fitting:
+        fitting.append('theta')
+
+    fitting = {p: None for p in fitting}
+
+    pickle_sim_result(name='sim_pswitch_emp',
+                      result_id=sid,
+                      par=fitting,
+                      result=fitresult)
 
 
-def load_result(sid):
-    # load from file
-    pass
+def load_result(sid, fitting=[], fixed=[]):
 
+    dirname, filename = os.path.split(os.path.abspath(__file__))
+
+    # add theta to parameter list
+    if 'theta' not in fitting:
+        fitting.append('theta')
+    fitting = {p: None for p in fitting}
+
+    r = unpickle_sim_result(name='sim_pswitch_emp',
+                            result_id=sid,
+                            par=fitting,
+                            outdir=dirname)
+
+    return r
 
 
 if __name__ == '__main__':
 
+    init()
+
     sids = SUBJ
 
-    for sid in sids:
+    # got up to 18
+
+    fitting = ['delta', 'z_temp', 'pow_gain']
+
+    for sid in sids[14:]:
 
         result = fit_subject(sid,
                              thetas=range(1, 15),
-                             fitting=['delta', 'z_temp', 'pow_gain', 'prelec_gamma'],
-                             init=[1., 1., 1., 1., 1.])
+                             fitting=fitting,
+                             init=[1., 1., 1.])
 
         save_result(sid, result)
 
