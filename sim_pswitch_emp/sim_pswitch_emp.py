@@ -71,20 +71,29 @@ def subject_fitdata(sid):
     return fitdata
 
 
-def fit_subject(sid, thetas=None, fitting=None, init=None):
+def fit_subject(sid, thetas=None, fitting=None, fixed=None, init=None):
     print 'Fitting subject %s' % sid
 
     fitdata = subject_fitdata(sid)
+
     if thetas is None:
         thetas = range(2, 12)
     if fitting is None:
         fitting = ['delta', 'z_temp', 'pow_gain']
+
     fth = {}
     for theta in thetas:
         pars = {'data': fitdata,
                 'theta': theta,
-                'p_switch': switchfreq[sid],
                 'fitting': fitting}
+        if fixed is not None:
+            for p in fixed:
+                pars[p] = fixed[p]
+
+        # unless specified, use empirical switch prob
+        if 'p_switch' not in pars:
+            pars['p_switch'] = switchfreq[sid]
+
         if init is None:
             init = [1., 1., 1.]
         fth[theta] = minimize(model_rw_cpt_pswitch.loglik_across_gambles, init, (pars,), method='Nelder-Mead')
@@ -93,7 +102,7 @@ def fit_subject(sid, thetas=None, fitting=None, init=None):
 
     bf_theta = thetas[np.argmin([fth[th]['fun'] for th in thetas])]
     f = fth[bf_theta]
-    return {'bf_theta': bf_theta, 'f': f, 'fitting': fitting}
+    return {'bf_theta': bf_theta, 'f': f, 'fitting': fitting, 'fixed': fixed}
 
 
 def predict_emp(sid, fitresult):
@@ -101,17 +110,24 @@ def predict_emp(sid, fitresult):
     Given a set of parameters, predict sample size distribution
     and response proportion.
     """
+    fitting = fitresult['fitting']
+    fixed = fitresult['fixed']
     rp = {}
     results = {}
     fitdata = subject_fitdata(sid)
     for fd in fitdata:
-        p = {'theta': fitresult['bf_theta'],
-             'p_switch': switchfreq[sid],
-             'options': fd['options']}
-        for i, parname in enumerate(fitresult['fitting']):
-            p[parname] = fitresult['f']['x'][i]
+        pars = {'theta': fitresult['bf_theta'],
+                #'p_switch': switchfreq[sid],
+                'options': fd['options']}
+        for i, parname in enumerate(fitting):
+            pars[parname] = fitresult['f']['x'][i]
+        if fixed is not None:
+            for p in fixed:
+                pars[p] = fixed[p]
+        if 'p_switch' not in pars:
+            pars['p_switch'] = switchfreq[sid]
 
-        results[fd['gid']] = model_rw_cpt_pswitch.run(p)
+        results[fd['gid']] = model_rw_cpt_pswitch.run(pars)
     return results
 
 
@@ -175,14 +191,16 @@ def save_result(sid, fitresult):
         fitting.append('theta')
 
     fitting = {p: None for p in fitting}
+    fixed = fitresult.get('fixed', None)
 
     pickle_sim_result(name='sim_pswitch_emp',
                       result_id=sid,
                       par=fitting,
+                      fixed=fixed,
                       result=fitresult)
 
 
-def load_result(sid, fitting=[], fixed=[]):
+def load_result(sid, fitting=[], fixed=None):
 
     dirname, filename = os.path.split(os.path.abspath(__file__))
 
@@ -194,22 +212,17 @@ def load_result(sid, fitting=[], fixed=[]):
     r = unpickle_sim_result(name='sim_pswitch_emp',
                             result_id=sid,
                             par=fitting,
+                            fixed=fixed,
                             outdir=dirname)
 
     return r
 
 
-if __name__ == '__main__':
-
-    init()
-
-    sids = SUBJ
-
-    # got up to 18
+def sim_empirical_pswitch(sids):
 
     fitting = ['delta', 'z_temp', 'pow_gain']
 
-    for sid in sids[14:]:
+    for sid in sids:
 
         result = fit_subject(sid,
                              thetas=range(1, 15),
@@ -218,3 +231,26 @@ if __name__ == '__main__':
 
         save_result(sid, result)
 
+
+def sim_fixed_pswitch(sids, pswitch):
+
+    fitting = ['delta', 'z_temp', 'pow_gain']
+
+    for sid in sids:
+
+        result = fit_subject(sid,
+                             thetas=range(1, 15),
+                             fitting=fitting,
+                             fixed={'p_switch': pswitch},
+                             init=[1., 1., 1.])
+
+        save_result(sid, result)
+
+
+if __name__ == '__main__':
+
+    init()
+
+    sim_empirical_pswitch(SUBJ[46:])
+
+    #sim_fixed_pswitch(SUBJ[:1], .5)

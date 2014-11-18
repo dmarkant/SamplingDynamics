@@ -2,9 +2,11 @@ import matplotlib.pylab as plt
 import numpy as np
 from cogmod.cpt import pweight_prelec, util
 
-
+"""
+try to use core bic in cogmod.fitting
 def bic(f, pars):
     return 2 * f['fun'] + len(pars['fitting']) * np.log(np.sum([d['samplesize'].size for d in pars['data']]))
+"""
 
 
 def add_problem_labels(ax, label_h, ylim):
